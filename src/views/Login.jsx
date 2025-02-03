@@ -37,7 +37,7 @@ const LoginPage = () => {
         localStorage.setItem('role', data.user.role);
         localStorage.setItem('camper_id', data.user.camper_id);
         console.log("Inicio de sesión exitoso. Token recibido:", data);
-        navigate(`/campers/profile/${data.user.camper_id}/edit`);
+        navigate(`dashboard`);
       } else {
         toast.error("Error de autenticación. Credenciales incorrectas.");
       }
@@ -139,28 +139,6 @@ const LoginPage = () => {
                 Iniciar Sesión
               </button>
             </form>
-
-            {/* Register Link */}
-            <div className="text-center mt-6">
-              <button
-                className="bg-transparent border-none text-[#7c3aed] cursor-pointer text-xs sm:text-sm 
-                       hover:text-[#6d28d9] hover:underline transition-colors duration-200"
-                onClick={() => navigate('/campers/register')}
-              >
-                ¿No tienes cuenta aún? Regístrate
-              </button>
-            </div>
-
-            {/* Forget Password */}
-            <div className="text-center mt-6">
-              <button
-                className="bg-transparent border-none text-white cursor-pointer text-xs sm:text-sm 
-                       hover:text-[#6d28d9] hover:underline transition-colors duration-200"
-                onClick={() => navigate('/campers/forgetPassword')}
-              >
-                ¿Olvidaste tu contraseña?
-              </button>
-            </div>
           </div>
         </div>
       </div>

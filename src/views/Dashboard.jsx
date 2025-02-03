@@ -7,15 +7,23 @@ import { Search, Users, UserX } from "lucide-react";
 import { endpoints } from "../services/apiConfig";
 import { useNavigate } from "react-router-dom";
 
-// Servicio para peticiones autenticadas
 const fetchWithAuth = async (url) => {
  const token = localStorage.getItem('token');
- return fetch(url, {
+ if (!token) throw new Error('No token found');
+ 
+ const response = await fetch(url, {
    headers: {
      'Authorization': `Bearer ${token}`,
      'Content-Type': 'application/json'
    }
  });
+ 
+ if (response.status === 401) {
+   localStorage.removeItem('token');
+   window.location.href = '/login';
+ }
+ 
+ return response;
 };
 
 export default function AdminDashboard() {
@@ -63,6 +71,11 @@ export default function AdminDashboard() {
    fetchData();
  }, [navigate]);
 
+ const handleLogout = () => {
+   localStorage.removeItem('token');
+   navigate('/login');
+ };
+
  const filteredCampers = data.campersPendientes.filter(camper =>
    camper.full_name.toLowerCase().includes(searchTerm.toLowerCase())
  );
@@ -86,14 +99,14 @@ export default function AdminDashboard() {
          </Badge>
        </TableCell>
        <TableCell className="text-right">
-       <a 
- href={`https://camperstories.vercel.app/campers/profile/${camper.id}/edit`}
- target="_blank"
- rel="noopener noreferrer"
- className="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition inline-flex items-center gap-2"
->
- Editar <span className="sr-only">(opens in new tab)</span>
-</a>
+         <a 
+           href={`https://camperstories.vercel.app/campers/profile/${camper.id}/edit`}
+           target="_blank"
+           rel="noopener noreferrer"
+           className="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition inline-flex items-center gap-2"
+         >
+           Editar <span className="sr-only">(opens in new tab)</span>
+         </a>
        </TableCell>
      </TableRow>
    );
@@ -102,7 +115,7 @@ export default function AdminDashboard() {
  return (
    <div className="min-h-screen bg-[#1E1B4B] text-white font-sans relative overflow-hidden">
      <header className="border-b border-white/10 bg-[#2E2B5B]/50 backdrop-blur-xl sticky top-0 z-10">
-       <div className="container flex h-16 items-center px-6">
+       <div className="container flex h-16 items-center justify-between px-6">
          <div className="relative flex-1 max-w-md">
            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
            <Input
@@ -112,6 +125,12 @@ export default function AdminDashboard() {
              onChange={e => setSearchTerm(e.target.value)}
            />
          </div>
+         <button
+           onClick={handleLogout}
+           className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm text-white transition-colors"
+         >
+           Cerrar sesión
+         </button>
        </div>
      </header>
 
