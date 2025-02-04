@@ -8,5 +8,10 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src')
     }
+  },
+  base: "./",  // 🔹 Asegura que los archivos sean correctamente referenciados en producción
+  build: {
+    outDir: "dist",
+    assetsDir: "assets"  // 🔹 Asegura que los archivos estáticos vayan a /assets/
   }
 });
