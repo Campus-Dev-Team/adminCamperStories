@@ -9,9 +9,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src')
     }
   },
-  base: "./",  // 🔹 Asegura que los archivos sean correctamente referenciados en producción
+  base: "./",
   build: {
     outDir: "dist",
-    assetsDir: "assets"  // 🔹 Asegura que los archivos estáticos vayan a /assets/
+    assetsDir: "assets"
   }
 });
