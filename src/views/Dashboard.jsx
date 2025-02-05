@@ -1,148 +1,178 @@
-import { useEffect, useState } from "react"
-import { toast, ToastContainer } from 'react-toastify'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
-import { Badge } from "../components/ui/badge"
-import { Input } from "../components/ui/input"
-import { Search, Users, UserX } from "lucide-react"
-import { endpoints } from "../services/apiConfig"
-import { useNavigate } from "react-router-dom"
-import 'react-toastify/dist/ReactToastify.css'
-import campushm from '/src/assets/Campushm.png';
+import React, { useEffect, useState, useMemo } from "react";
+import { toast, ToastContainer } from 'react-toastify';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Search, Users, UserX, Check, X, AlertCircle } from 'lucide-react';
+import { endpoints } from "../services/apiConfig";
+import { useNavigate } from "react-router-dom";
+import 'react-toastify/dist/ReactToastify.css';
 import Navbar from '../components/dashboard/Navbar';
 
-const fetchWithAuth = async (url) => {
-    const token = localStorage.getItem("token")
-    if (!token) throw new Error("No token found")
-
-    const response = await fetch(url, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-        },
-    })
-
-    if (response.status === 401) {
-        localStorage.removeItem("token")
-        window.location.href = "/login"
-    }
-
-    return response
-}
-
 const AdminDashboard = () => {
-    const navigate = useNavigate()
+    const navigate = useNavigate();
     const [data, setData] = useState({
         totalRegistrados: 0,
         registrosIncompletos: 0,
         campersPendientes: [],
-    })
-    const [loading, setLoading] = useState(true)
-    const [searchTerm, setSearchTerm] = useState("")
+        showAll: true
+    });
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [activeFilter, setActiveFilter] = useState("all"); // "all", "pending", "complete"
+
+    const fetchCamperDetails = async (camperId) => {
+        try {
+            const [dreams, projects, videos] = await Promise.all([
+                fetch(`${endpoints.campers}/${camperId}/dreams`).then(res => res.json()),
+                fetch(`${endpoints.campers}/${camperId}/proyects`).then(res => res.json()),
+                fetch(`${endpoints.campers}/${camperId}/videos`).then(res => res.json())
+            ]);
+            
+            return {
+                hasDreams: dreams && dreams.length > 0,
+                hasProjects: projects && projects.length > 0,
+                hasVideos: videos && videos.length > 0
+            };
+        } catch (error) {
+            console.error("Error fetching details:", error);
+            return {
+                hasDreams: false,
+                hasProjects: false,
+                hasVideos: false
+            };
+        }
+    };
+
+    const fetchCampers = async () => {
+        try {
+            setLoading(true);
+            const endpoint = endpoints.campers;
+            const response = await fetch(endpoint, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    "Content-Type": "application/json",
+                }
+            });
+            
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const responseData = await response.json();
+            
+            // Fetch additional details for each camper
+            const campersWithDetails = await Promise.all(
+                responseData.map(async (camper) => {
+                    const details = await fetchCamperDetails(camper.camper_id);
+                    return {
+                        ...camper,
+                        ...details,
+                        isComplete: camper.main_video_url && details.hasDreams && 
+                                  details.hasProjects && details.hasVideos
+                    };
+                })
+            );
+
+            const incompleteCount = campersWithDetails.filter(c => !c.isComplete).length;
+
+            setData({
+                totalRegistrados: campersWithDetails.length,
+                registrosIncompletos: incompleteCount,
+                campersPendientes: campersWithDetails,
+                showAll: true
+            });
+        } catch (error) {
+            console.error("Error:", error);
+            toast.error("Error al cargar los datos");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const token = localStorage.getItem("token")
+        const token = localStorage.getItem("token");
         if (!token) {
-            navigate("/login")
-            return
+            navigate("/login");
+            return;
         }
-
-        const fetchData = async () => {
-            try {
-                setLoading(true)
-                const [resTotal, resIncomplete] = await Promise.all([
-                    fetchWithAuth(endpoints.Count),
-                    fetchWithAuth(endpoints.Imcomplete),
-                ])
-
-                const [totalData, incompleteData] = await Promise.all([
-                    resTotal.json(), 
-                    resIncomplete.json()
-                ])
-
-                setData({
-                    totalRegistrados: totalData.totalRegistros || 0,
-                    registrosIncompletos: incompleteData.totalIncompletos.length || 0,
-                    campersPendientes: incompleteData.totalIncompletos || [],
-                })
-            } catch (error) {
-                console.error("Error:", error)
-                toast.error("Error al cargar los datos")
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchData()
-    }, [navigate])
+        fetchCampers();
+    }, [navigate]);
 
     const handleLogout = () => {
-        localStorage.removeItem("token")
-        toast.success("Sesión cerrada exitosamente")
-        navigate("/")
-    }
+        localStorage.removeItem("token");
+        toast.success("Sesión cerrada exitosamente");
+        navigate("/");
+    };
 
-    const filteredCampers = data.campersPendientes.filter((camper) =>
-        camper.full_name.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
+    const filteredCampers = useMemo(() => {
+        let filtered = data.campersPendientes.filter(camper => 
+            camper?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        switch (activeFilter) {
+            case "pending":
+                return filtered.filter(camper => !camper.isComplete);
+            case "complete":
+                return filtered.filter(camper => camper.isComplete);
+            default:
+                return filtered;
+        }
+    }, [data.campersPendientes, searchTerm, activeFilter]);
+
+    const renderStatusIcon = (status) => {
+        return status ? 
+            <Check className="h-5 w-5 text-green-500" /> : 
+            <X className="h-5 w-5 text-red-500" />;
+    };
 
     const renderCamperRow = (camper) => {
-        const estado = Object.values(camper).some((val) => val === null) ? "Pendiente" : "Completo"
+        if (!camper?.camper_id) return null;
 
         return (
-            <TableRow key={camper.id} className="border-white/10 hover:bg-white/5 transition">
+            <TableRow key={camper.camper_id} className="border-white/10 hover:bg-white/5 transition">
                 <TableCell>
                     <img
-                        src={camper.profile_picture || "https://via.placeholder.com/40"}
+                        src={camper.profile_picture || "/api/placeholder/40/40"}
                         alt={camper.full_name}
                         className="w-10 h-10 rounded-full object-cover border border-white/20"
                     />
                 </TableCell>
                 <TableCell className="font-medium text-white">{camper.full_name}</TableCell>
+                <TableCell className="text-center">
+                    {renderStatusIcon(camper.main_video_url)}
+                </TableCell>
+                <TableCell className="text-center">
+                    {renderStatusIcon(camper.hasDreams)}
+                </TableCell>
+                <TableCell className="text-center">
+                    {renderStatusIcon(camper.hasProjects)}
+                </TableCell>
+                <TableCell className="text-center">
+                    {renderStatusIcon(camper.hasVideos)}
+                </TableCell>
                 <TableCell>
                     <Badge 
-                        className={`border-secondary/20 ${
-                            estado === "Pendiente" ? "bg-red-500" : "bg-green-500"
-                        } text-white`}
+                        className={`${camper.isComplete ? 'bg-green-500' : 'bg-red-500'} text-white`}
                     >
-                        {estado}
+                        {camper.isComplete ? 'Completo' : 'Pendiente'}
                     </Badge>
                 </TableCell>
+                <TableCell>
+                    <button 
+                        onClick={() => navigate(`/camper/${camper.camper_id}`)}
+                        className="text-primary hover:text-primary/80"
+                    >
+                        Ver detalles
+                    </button>
+                </TableCell>
             </TableRow>
-        )
-    }
-
-    const handleButtonClick = () => {
-        toast.info("Estamos trabajando en ello", {
-            position: "top-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "dark",
-        })
-    }
+        );
+    };
 
     return (
         <div className="min-h-screen bg-[#1E1B4B] text-white font-sans relative overflow-hidden flex">
-            <ToastContainer
-                position="top-right"
-                autoClose={3000}
-                hideProgressBar={false}
-                newestOnTop={false}
-                closeOnClick
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-                theme="dark"
-            />
-            
-            <Navbar handleButtonClick={handleButtonClick} />
+            <ToastContainer theme="dark" />
+            <Navbar />
 
-            {/* Main Content */}
             <div className="flex-1 flex flex-col">
                 <header className="border-b border-white/10 bg-[#2E2B5B]/50 backdrop-blur-xl sticky top-0 z-10">
                     <div className="flex h-16 items-center justify-between px-6">
@@ -155,12 +185,46 @@ const AdminDashboard = () => {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <button
-                            onClick={handleLogout}
-                            className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm text-white transition-colors"
-                        >
-                            Cerrar sesión
-                        </button>
+                        <div className="flex items-center gap-4">
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setActiveFilter("all")}
+                                    className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                                        activeFilter === "all" 
+                                            ? "bg-primary text-white" 
+                                            : "bg-white/5 hover:bg-white/10"
+                                    }`}
+                                >
+                                    Todos
+                                </button>
+                                <button
+                                    onClick={() => setActiveFilter("pending")}
+                                    className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                                        activeFilter === "pending" 
+                                            ? "bg-red-500 text-white" 
+                                            : "bg-white/5 hover:bg-white/10"
+                                    }`}
+                                >
+                                    Pendientes
+                                </button>
+                                <button
+                                    onClick={() => setActiveFilter("complete")}
+                                    className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                                        activeFilter === "complete" 
+                                            ? "bg-green-500 text-white" 
+                                            : "bg-white/5 hover:bg-white/10"
+                                    }`}
+                                >
+                                    Completos
+                                </button>
+                            </div>
+                            <button
+                                onClick={handleLogout}
+                                className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm text-white transition-colors"
+                            >
+                                Cerrar sesión
+                            </button>
+                        </div>
                     </div>
                 </header>
 
@@ -172,7 +236,9 @@ const AdminDashboard = () => {
                                     Total Registrados
                                     <Users className="h-5 w-5 text-primary" />
                                 </CardTitle>
-                                <CardDescription className="text-white/60">Últimos 30 días</CardDescription>
+                                <CardDescription className="text-white/60">
+                                    Total de campers
+                                </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-3xl font-bold text-white mb-1">
@@ -185,9 +251,11 @@ const AdminDashboard = () => {
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-lg text-white flex items-center justify-between">
                                     Registros Incompletos
-                                    <UserX className="h-5 w-5 text-secondary" />
+                                    <AlertCircle className="h-5 w-5 text-red-500" />
                                 </CardTitle>
-                                <CardDescription className="text-white/60">Necesitan seguimiento</CardDescription>
+                                <CardDescription className="text-white/60">
+                                    Necesitan completar información
+                                </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-3xl font-bold text-white mb-1">
@@ -195,48 +263,79 @@ const AdminDashboard = () => {
                                 </div>
                             </CardContent>
                         </Card>
+
+                        <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg p-6">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg text-white flex items-center justify-between">
+                                    Registros Completos
+                                    <Check className="h-5 w-5 text-green-500" />
+                                </CardTitle>
+                                <CardDescription className="text-white/60">
+                                    Información completa
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold text-white mb-1">
+                                    {loading ? "..." : (data.totalRegistrados - data.registrosIncompletos)}
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg p-6">
                         <CardHeader>
-                            <CardTitle className="text-white">Registros Pendientes</CardTitle>
+                            <CardTitle className="text-white">
+                                Estado de Registro de Campers
+                            </CardTitle>
                             <CardDescription className="text-white/60">
-                                Usuarios que necesitan completar su registro
+                                Seguimiento detallado del progreso de registro
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {loading ? (
-                                <p className="text-white/60">Cargando...</p>
-                            ) : (
-                                <div className="overflow-y-auto max-h-[32rem] max-w-[100%] no-scrollbar">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow className="border-white/10">
-                                                <TableHead className="text-white/80">Foto</TableHead>
-                                                <TableHead className="text-white/80">Nombre</TableHead>
-                                                <TableHead className="text-white/80">Estado</TableHead>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="border-white/10">
+                                            <TableHead className="text-white/80">Foto</TableHead>
+                                            <TableHead className="text-white/80">Nombre</TableHead>
+                                            <TableHead className="text-white/80 text-center">Video Principal</TableHead>
+                                            <TableHead className="text-white/80 text-center">Sueños</TableHead>
+                                            <TableHead className="text-white/80 text-center">Proyectos</TableHead>
+                                            <TableHead className="text-white/80 text-center">Videos</TableHead>
+                                            <TableHead className="text-white/80">Estado</TableHead>
+                                            <TableHead className="text-white/80">Acciones</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {loading ? (
+                                            <TableRow>
+                                                <TableCell colSpan={8} className="text-center py-8">
+                                                    <div className="flex items-center justify-center text-white/60">
+                                                        Cargando información...
+                                                    </div>
+                                                </TableCell>
                                             </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {filteredCampers.length > 0 ? (
-                                                filteredCampers.map(renderCamperRow)
-                                            ) : (
-                                                <TableRow>
-                                                    <TableCell colSpan={3} className="text-center text-white/60">
-                                                        No hay registros coincidentes.
-                                                    </TableCell>
-                                                </TableRow>
-                                            )}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            )}
+                                        ) : filteredCampers.length > 0 ? (
+                                            filteredCampers.map(renderCamperRow)
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={8} className="text-center py-8">
+                                                    <div className="flex flex-col items-center justify-center text-white/60">
+                                                        <UserX className="h-8 w-8 mb-2" />
+                                                        No se encontraron registros
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </CardContent>
                     </Card>
                 </main>
             </div>
         </div>
-    )
-}
+    );
+};
 
-export default AdminDashboard
+export default AdminDashboard;
