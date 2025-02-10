@@ -1,7 +1,20 @@
 import { useEffect, useState, useMemo } from "react";
 import { toast, ToastContainer } from "react-toastify";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, Users, UserX, Check, X } from "lucide-react";
@@ -33,20 +46,27 @@ const AdminDashboard = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Mantener la lógica de fetchCamperDetails y fetchCampers igual...
+  const getHeaders = () => ({
+    Authorization: `Bearer ${localStorage.getItem("token")}`,
+    "Content-Type": "application/json",
+  });
+
   const fetchCamperDetails = async (camperId) => {
     try {
-      const response = await fetch(`${endpoints.campers}/${camperId}/details`);
-      if (!response.ok) throw new Error(`Error al obtener detalles del camper`);
+      const response = await fetch(endpoints.campersDetails(camperId));
+      if (!response.ok) throw new Error("Error al obtener detalles del camper");
 
       const { camper, dreams, projects, videos } = await response.json();
-
       return {
         ...camper,
         hasDreams: dreams.length > 0,
         hasProjects: projects.length > 0,
         hasVideos: videos.length > 0,
-        isComplete: camper.main_video_url && dreams.length > 0 && projects.length > 0 && videos.length > 0,
+        isComplete:
+          camper.main_video_url &&
+          dreams.length > 0 &&
+          projects.length > 0 &&
+          videos.length > 0,
       };
     } catch (error) {
       console.error("Error fetching camper details:", error);
@@ -62,22 +82,16 @@ const AdminDashboard = () => {
   const fetchCampers = async () => {
     try {
       setLoading(true);
-      const endpoint = endpoints.campers;
-      const response = await fetch(endpoint, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-      });
-
+      const response = await fetch(endpoints.campers, { headers: getHeaders() });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const responseData = await response.json();
 
+      const responseData = await response.json();
       const campersWithDetails = await Promise.all(
         responseData.map((camper) => fetchCamperDetails(camper.camper_id))
       );
 
-      const incompleteCount = campersWithDetails.filter((c) => !c.isComplete).length;
+      const incompleteCount = campersWithDetails.filter((c) => !c.isComplete)
+        .length;
 
       setData({
         totalRegistrados: campersWithDetails.length,
@@ -124,7 +138,10 @@ const AdminDashboard = () => {
   }, [data.campersPendientes, searchTerm, activeFilter]);
 
   const totalPages = Math.ceil(filteredCampers.length / ITEMS_PER_PAGE);
-  const paginatedCampers = filteredCampers.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const paginatedCampers = filteredCampers.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   const renderStatusIcon = (status) => (
     <div className="flex justify-center items-center">
@@ -136,7 +153,6 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-[#1E1B4B] text-white font-sans relative overflow-hidden flex">
       <ToastContainer theme="dark" />
       <Navbar />
-
       <div className="flex-1 flex flex-col">
         <header className="border-b border-white/10 bg-[#2E2B5B]/50 backdrop-blur-xl sticky top-0 z-10">
           <div className="flex h-16 items-center justify-between px-6">
@@ -186,7 +202,6 @@ const AdminDashboard = () => {
             </button>
           </div>
         </header>
-
         <main className="flex-1 p-6 overflow-auto">
           <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg p-6">
             <CardHeader>
@@ -240,7 +255,6 @@ const AdminDashboard = () => {
                   </TableBody>
                 </Table>
               </div>
-
               {!loading && totalPages > 1 && (
                 <div className="mt-4 flex justify-center">
                   <Pagination>
