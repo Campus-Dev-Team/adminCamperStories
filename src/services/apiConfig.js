@@ -4,7 +4,7 @@ export const endpoints = {
   login: `${API_BASE_URL}users/login`,
   Count: `${API_BASE_URL}admin`,
   Imcomplete: `${API_BASE_URL}admin/incomplete`,
-  campers: `${API_BASE_URL}campers`,
+  campers: `${API_BASE_URL}campers:1`,
   campersDetails: `${API_BASE_URL}campers/:id/details` // endpoint de campers 
 };
 
