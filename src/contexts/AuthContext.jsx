@@ -1,52 +1,26 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
 
-  const login = async (token, userData) => {
-    // Guardar token con tiempo de expiración (ejemplo: 24 horas)
-    const expiresAt = new Date().getTime() + 24 * 60 * 60 * 1000;
-    const authData = {
-      token,
-      expiresAt,
-      user: userData
-    };
-    
-    localStorage.setItem('authData', JSON.stringify(authData));
+  const login = (token, userData) => {
+    localStorage.setItem('token', token);
     setUser(userData);
   };
 
   const logout = () => {
-    localStorage.removeItem('authData');
+    localStorage.removeItem('token');
     setUser(null);
     navigate('/login');
   };
 
   const isAuthenticated = () => {
-    const authData = JSON.parse(localStorage.getItem('authData'));
-    if (!authData) return false;
-    
-    if (new Date().getTime() > authData.expiresAt) {
-      logout();
-      return false;
-    }
-    
-    return true;
+    return !!localStorage.getItem('token');
   };
-
-  useEffect(() => {
-    // Verificar autenticación al cargar
-    const authData = JSON.parse(localStorage.getItem('authData'));
-    if (authData && new Date().getTime() <= authData.expiresAt) {
-      setUser(authData.user);
-    } else {
-      logout();
-    }
-  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
@@ -55,4 +29,10 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext); 
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+  }
+  return context;
+}; 

@@ -6,7 +6,7 @@ export const endpoints = {
   incomplete: `${API_BASE_URL}admin/incomplete`,
   campers: `${API_BASE_URL}campers/1/campus`,
   campersDetails: (id) => `${API_BASE_URL}campers/${id}/details`,
+  allCampersDetails: `${API_BASE_URL}campers/all/details`,
 };
-
 
 export default API_BASE_URL;

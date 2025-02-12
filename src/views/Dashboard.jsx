@@ -30,11 +30,13 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { useAuth } from "../contexts/AuthContext";
 
 const ITEMS_PER_PAGE = 10;
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [data, setData] = useState({
     totalRegistrados: 0,
     registrosIncompletos: 0,
@@ -51,52 +53,47 @@ const AdminDashboard = () => {
     "Content-Type": "application/json",
   });
 
-  const fetchCamperDetails = async (camperId) => {
-    try {
-      const response = await fetch(endpoints.campersDetails(camperId));
-      if (!response.ok) throw new Error("Error al obtener detalles del camper");
-
-      const { camper, dreams, projects, videos } = await response.json();
-      return {
-        ...camper,
-        hasDreams: dreams.length > 0,
-        hasProjects: projects.length > 0,
-        hasVideos: videos.length > 0,
-        isComplete:
-          camper.main_video_url &&
-          dreams.length > 0 &&
-          projects.length > 0 &&
-          videos.length > 0,
-      };
-    } catch (error) {
-      console.error("Error fetching camper details:", error);
-      return {
-        hasDreams: false,
-        hasProjects: false,
-        hasVideos: false,
-        isComplete: false,
-      };
-    }
-  };
-
-  const fetchCampers = async () => {
+  const fetchAllCampersData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(endpoints.campers, { headers: getHeaders() });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await fetch(endpoints.allCampersDetails, {
+        headers: getHeaders()
+      });
+
+      if (response.status === 401) {
+        toast.error("Sesión expirada o inválida");
+        logout();
+        return;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al cargar los datos');
+      }
 
       const responseData = await response.json();
-      const campersWithDetails = await Promise.all(
-        responseData.map((camper) => fetchCamperDetails(camper.camper_id))
-      );
-
-      const incompleteCount = campersWithDetails.filter((c) => !c.isComplete)
-        .length;
+      const allCampers = responseData.data || [];
+      
+      const incompleteCount = allCampers.filter(camper => 
+        !(camper.main_video_url && 
+          camper.dreams?.length > 0 && 
+          camper.projects?.length > 0 && 
+          camper.videos?.length > 0)
+      ).length;
 
       setData({
-        totalRegistrados: campersWithDetails.length,
+        totalRegistrados: allCampers.length,
         registrosIncompletos: incompleteCount,
-        campersPendientes: campersWithDetails,
+        campersPendientes: allCampers.map(camper => ({
+          ...camper,
+          isComplete: !!(camper.main_video_url && 
+                        camper.dreams?.length > 0 && 
+                        camper.projects?.length > 0 && 
+                        camper.videos?.length > 0),
+          hasDreams: camper.dreams?.length > 0,
+          hasProjects: camper.projects?.length > 0,
+          hasVideos: camper.videos?.length > 0
+        })),
         showAll: true,
       });
     } catch (error) {
@@ -113,7 +110,19 @@ const AdminDashboard = () => {
       navigate("/login");
       return;
     }
-    fetchCampers();
+
+    const initializeDashboard = async () => {
+      try {
+        await fetchAllCampersData();
+      } catch (error) {
+        console.error("Error initializing dashboard:", error);
+        if (error.message.includes('401')) {
+          logout();
+        }
+      }
+    };
+
+    initializeDashboard();
   }, []);
 
   const handleLogout = () => {
@@ -148,6 +157,14 @@ const AdminDashboard = () => {
       {status ? <Check className="h-5 w-5 text-green-500" /> : <X className="h-5 w-5 text-red-500" />}
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#1E1B4B] text-white font-sans relative overflow-hidden flex items-center justify-center">
+        <div className="text-xl">Cargando...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#1E1B4B] text-white font-sans relative overflow-hidden flex">
