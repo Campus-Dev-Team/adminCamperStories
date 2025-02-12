@@ -6,11 +6,17 @@ import { Label } from "../components/ui/label";
 import campushm from '/src/assets/Campushm.png';
 import { endpoints } from '../services/apiConfig';
 import { CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage = () => {
+  const { login } = useAuth();
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
   const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
 
   useEffect(() => {
     if (token) {
@@ -20,30 +26,40 @@ const LoginPage = () => {
     }
   }, [token]);
 
-  const handleLogin = async (email, password) => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
-      console.log("Iniciando sesión con:", email);
       const response = await fetch(endpoints.login, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        toast.success("Inicio de sesión exitoso");
+      const data = await response.json();
 
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('role', data.user.role);
-        localStorage.setItem('camper_id', data.user.camper_id);
-        console.log("Inicio de sesión exitoso. Token recibido:", data);
-        navigate(`dashboard`);
+      if (response.ok) {
+        await login(data.token, {
+          // Asegúrate de incluir los datos del usuario que necesites
+          email: formData.email,
+          // otros datos del usuario que vengan en la respuesta
+        });
+        toast.success("Inicio de sesión exitoso");
+        navigate("/dashboard");
       } else {
-        toast.error("Error de autenticación. Credenciales incorrectas.");
+        toast.error(data.message || "Error al iniciar sesión");
       }
     } catch (error) {
-      toast.error("Error al intentar iniciar sesión. Por favor, inténtalo de nuevo.");
+      toast.error("Error al conectar con el servidor");
     }
+  };
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
   };
 
   return (
@@ -73,12 +89,7 @@ const LoginPage = () => {
 
             {/* Login Form */}
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const email = e.target.email.value;
-                const password = e.target.password.value;
-                handleLogin(email, password);
-              }}
+              onSubmit={handleSubmit}
               className="space-y-4"
             >
               {/* Email Input */}
@@ -94,6 +105,8 @@ const LoginPage = () => {
                     id="email"
                     type="email"
                     name="email"
+                    value={formData.email}
+                    onChange={handleChange}
                     className="w-full py-2.5 px-4 pl-9 bg-[#3a3a4e] rounded-lg text-white text-sm sm:text-base 
                            focus:outline-none focus:ring-2 focus:ring-[#7c3aed] hover:bg-[#434360]"
                     placeholder="Correo electrónico"
@@ -115,6 +128,8 @@ const LoginPage = () => {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     name="password"
+                    value={formData.password}
+                    onChange={handleChange}
                     className="w-full py-2.5 px-4 pl-9 bg-[#3a3a4e] rounded-lg text-white text-sm sm:text-base 
                            focus:outline-none focus:ring-2 focus:ring-[#7c3aed] hover:bg-[#434360]"
                     placeholder="Contraseña"

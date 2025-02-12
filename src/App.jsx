@@ -1,14 +1,17 @@
 import React from "react";
-import { BrowserRouter as Router } from "react-router-dom";
-import AppRouter from "./router/AppRouter"; // Sin alias '@'
+import { BrowserRouter } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import AppRouter from "./routes"; // Sin alias '@'
 
 import './index.css'
 
 function App() {
   return (
-    <Router>
-      <AppRouter />
-    </Router>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRouter />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
