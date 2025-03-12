@@ -1,14 +1,22 @@
+import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, currentUser, loading } = useAuth();
+  
+  // Muestra un indicador de carga mientras se verifica la autenticación
+  if (loading) {
+    return <div>Cargando...</div>;
+  }
 
-  if (!isAuthenticated()) {
+  // IMPORTANTE: Usar isAuthenticated como booleano, NO como función
+  // Cambio de isAuthenticated() a isAuthenticated
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
   return children;
 };
 
-export default ProtectedRoute; 
+export default ProtectedRoute;

@@ -1,34 +1,28 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { toast } from 'react-toastify';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Verificar si existe una sesión al iniciar
   useEffect(() => {
-    // Verificar si hay un token almacenado al cargar la aplicación
-    const checkAuthStatus = async () => {
+    const checkAuth = async () => {
       try {
         const token = localStorage.getItem('token');
         const storedUser = localStorage.getItem('user');
         
         if (token && storedUser) {
           const userData = JSON.parse(storedUser);
-          
-          // Validar que el usuario almacenado tiene el rol de administrador
-          if (userData.role === "admin") {
-            setCurrentUser(userData);
-          } else {
-            // Si no es administrador, limpiar el almacenamiento
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-          }
+          setCurrentUser(userData);
+          console.log('Usuario recuperado del localStorage:', userData);
+        } else {
+          console.log('No hay sesión guardada en localStorage');
         }
       } catch (error) {
-        console.error("Error al verificar el estado de autenticación:", error);
-        // Si hay algún error, limpiamos el almacenamiento local
+        console.error("Error verificando autenticación:", error);
+        // Limpiar localStorage si hay un error al parsear
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       } finally {
@@ -36,68 +30,68 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    checkAuthStatus();
+    checkAuth();
   }, []);
 
-  // Función de inicio de sesión
   const login = async (token, userData) => {
     try {
-      // Guardar el token en localStorage
+      console.log('Iniciando sesión con:', { token: token ? 'token-presente' : 'no-token', userData });
+      
+      // Guardar token y datos del usuario en localStorage
       localStorage.setItem('token', token);
-      
-      // Guardar datos del usuario
       localStorage.setItem('user', JSON.stringify(userData));
-      
-      // Actualizar el estado de usuario en el contexto
       setCurrentUser(userData);
       
+      console.log('Sesión iniciada correctamente:', userData);
       return true;
     } catch (error) {
-      console.error("Error durante el inicio de sesión:", error);
-      toast.error("Error al procesar el inicio de sesión");
-      throw error;
+      console.error("Error en login:", error);
+      return false;
     }
   };
 
-  // Función de cierre de sesión
   const logout = () => {
-    // Limpiar localStorage
+    console.log('Cerrando sesión');
+    // Eliminar token y datos de usuario
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    
-    // Restablecer el estado del usuario
     setCurrentUser(null);
-    
-    toast.info("Has cerrado sesión correctamente");
+    console.log('Sesión cerrada');
   };
 
-  const isAuthenticated = () => {
-    return currentUser !== null;
+  const updateUserData = (newData) => {
+    try {
+      const updatedUser = { ...currentUser, ...newData };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setCurrentUser(updatedUser);
+      console.log('Datos de usuario actualizados:', updatedUser);
+      return true;
+    } catch (error) {
+      console.error("Error actualizando datos de usuario:", error);
+      return false;
+    }
   };
 
-  // Valores y funciones que se proporcionarán a través del contexto
-  const value = {
-    currentUser,
-    loading,
-    login,
-    logout,
-    isAuthenticated
-  };
+  // Agregar una propiedad para verificar si el usuario está autenticado
+  const isAuthenticated = !!currentUser;
+  
+  console.log('Estado de autenticación actualizado:', { 
+    isAuthenticated, 
+    currentUser: currentUser ? `Usuario ID: ${currentUser.id}, Rol: ${currentUser.role_id}` : 'Sin usuario'
+  });
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ 
+      currentUser, 
+      login, 
+      logout, 
+      loading,
+      updateUserData,
+      isAuthenticated // Exportar la propiedad isAuthenticated
+    }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Hook personalizado para usar el contexto de autenticación
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === null) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
-  }
-  return context;
-};
-
-export default AuthContext;
+export const useAuth = () => useContext(AuthContext);

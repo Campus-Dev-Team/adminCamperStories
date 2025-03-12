@@ -14,7 +14,7 @@ const AppRouter = () => {
       <Route 
         path="/" 
         element={
-          isAuthenticated() ? (
+          isAuthenticated ? (
             <Navigate to="/dashboard" replace />
           ) : (
             <Navigate to="/login" replace />
@@ -26,7 +26,7 @@ const AppRouter = () => {
       <Route 
         path="/login" 
         element={
-          isAuthenticated() ? (
+          isAuthenticated ? (
             <Navigate to="/dashboard" replace />
           ) : (
             <LoginPage />
@@ -48,7 +48,7 @@ const AppRouter = () => {
       <Route 
         path="*" 
         element={
-          isAuthenticated() ? (
+          isAuthenticated ? (
             <Navigate to="/dashboard" replace />
           ) : (
             <Navigate to="/login" replace />
@@ -59,4 +59,4 @@ const AppRouter = () => {
   );
 };
 
-export default AppRouter; 
+export default AppRouter;

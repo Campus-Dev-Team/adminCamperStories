@@ -11,13 +11,13 @@ import { endpoints } from '../services/apiConfig';
 
 // Función para generar estrellas
 const generateStars = (count) => {
-    return Array.from({ length: count }).map((_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        duration: Math.random() * 5 + 5,
-        size: Math.random() * 2 + 1,
-    }));
+  return Array.from({ length: count }).map((_, i) => ({
+    id: i,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    duration: Math.random() * 5 + 5,
+    size: Math.random() * 2 + 1,
+  }));
 };
 
 const stars = generateStars(50);
@@ -37,9 +37,15 @@ const LoginPage = () => {
   useEffect(() => {
     // Verificar que realmente tenemos una sesión válida antes de redirigir
     const token = localStorage.getItem('token');
-    if (currentUser?.id && currentUser?.role === "admin" && !loading && token) {
-      const redirectTo = location.state?.from?.pathname || `/dashboard`;
-      navigate(redirectTo, { replace: true });
+    if (currentUser?.id && !loading && token) {
+      // Redirigir según el rol del usuario
+      if (currentUser.role === "admin") {
+        navigate("/admin-dashboard", { replace: true });
+      } else if (currentUser.role === "regionalAdmin") {
+        navigate("/regional-dashboard", { replace: true });
+      } else {
+        navigate("/access-denied", { replace: true }); // Redirigir a una página de acceso denegado si el rol no es admin ni regionalAdmin
+      }
     }
   }, [currentUser, loading, navigate, location]);
 
@@ -77,16 +83,15 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsSubmitting(true);
-    
+
     try {
-      // Asegurarse que la URL es correcta con la barra diagonal
       const loginUrl = endpoints.login;
       console.log("Iniciando sesión en:", loginUrl);
-      
+
       const response = await fetch(loginUrl, {
         method: "POST",
         headers: {
@@ -98,42 +103,53 @@ const LoginPage = () => {
       const data = await response.json();
 
       if (response.ok) {
-        if (data.success && data.user.role === "admin") {
+        if (data.success) {
+          // Guardamos la información del usuario y el token en el contexto
           await login(data.token, {
             id: data.user.id,
             email: data.user.email,
-            role: data.user.role,
+            role: data.user.role,  // 'admin' o 'regionalAdmin'
+            role_id: determineRoleId(data.user.role),
             first_name: data.user.first_name,
-            last_name: data.user.last_name
+            last_name: data.user.last_name,
+            city_id: data.user.city_id,
+            document_type: data.user.document_type,
+            document_number: data.user.document_number,
           });
-          toast.success(data.message || "¡Inicio de sesión exitoso como administrador!");
-          navigate("/dashboard");
-        } else {
-          toast.error("Acceso denegado: No tienes permisos de administrador");
+
+          // Notificación de éxito
+          toast.success(data.message || `¡Inicio de sesión exitoso como ${data.user.role}!`);
+
+          // Redirigir dependiendo del rol
+          if (data.user.role === "admin") {
+            navigate("/admin-dashboard");
+          } else if (data.user.role === "regionalAdmin") {
+            navigate("/regional-dashboard");
+          }
         }
       } else {
         toast.error(data.message || "Error al iniciar sesión");
       }
     } catch (error) {
-      // Asegurarnos de limpiar cualquier dato residual en caso de error
+      // Manejo de errores
       localStorage.clear();
-      
-      if (error.response) {
-        if (error.response.status === 401) {
-          toast.error("Credenciales incorrectas. Verifica tu email y contraseña.");
-        } else if (error.response.status === 429) {
-          toast.error("Demasiados intentos fallidos. Inténtalo más tarde.");
-        } else {
-          toast.error(error.response?.data?.message || "Error en el inicio de sesión");
-        }
-      } else if (error.request) {
-        toast.error("Error de conexión. Verifica tu conexión a internet.");
-      } else {
-        toast.error("Error al intentar iniciar sesión. Por favor, inténtalo de nuevo.");
-      }
+      toast.error("Error al intentar iniciar sesión. Por favor, inténtalo de nuevo.");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // AÑADIR FUNCIÓN - Para determinar el role_id basado en el rol de texto
+  const determineRoleId = (role) => {
+    const roleMap = {
+      'camper': 0,
+      'admin': 1,
+      'regionalAdmin': 5,  // Asegúrate de mapear correctamente al role_id para regionalAdmin
+      'sponsor': 2,
+      'empresa': 3,
+      'empleabilidad': 4
+    };
+    return roleMap[role] || 0; // Por defecto, devuelve 0 (camper)
   };
 
   return (
@@ -253,19 +269,6 @@ const LoginPage = () => {
                 {formErrors.password && (
                   <p className="text-red-500 text-xs mt-1 text-left">{formErrors.password}</p>
                 )}
-              </div>
-              
-              {/* Forget Password */}
-              <div className="text-center my-[1.5rem]">
-                <button
-                  type="button"
-                  className="bg-transparent border-none text-[#FFFFFF] cursor-pointer text-xs sm:text-sm 
-                      hover:text-[#6d28d9] hover:underline transition-colors duration-200"
-                  onClick={() => navigate('/forgetPassword')}
-                  disabled={isSubmitting}
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
               </div>
 
               {/* Submit Button */}

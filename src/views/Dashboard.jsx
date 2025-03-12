@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Users, UserX, Check, X } from "lucide-react";
+import { Search, Users, UserX, Check, X, MapPin } from "lucide-react";
 import { endpoints } from "../services/apiConfig";
 import { useNavigate } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
@@ -36,7 +36,7 @@ const ITEMS_PER_PAGE = 10;
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, currentUser } = useAuth();
   const [data, setData] = useState({
     totalRegistrados: 0,
     registrosIncompletos: 0,
@@ -47,6 +47,8 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState("all"); // 'all' o 'myCampus'
+  const [campusInfo, setCampusInfo] = useState(null);
 
   const getHeaders = () => ({
     Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -104,6 +106,67 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchMyCampusCampers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(endpoints.myCampusCampers, {
+        headers: getHeaders()
+      });
+
+      if (response.status === 401) {
+        toast.error("Sesión expirada o inválida");
+        logout();
+        return;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al cargar los datos de tu campus');
+      }
+
+      const responseData = await response.json();
+      const campusData = responseData.data || {};
+      const campusCampers = campusData.campers || [];
+      
+      setCampusInfo({
+        campusId: campusData.campusId,
+        campusName: campusData.campusName,
+        totalCampers: campusData.totalCampers
+      });
+      
+      const incompleteCount = campusCampers.filter(camper => 
+        !(camper.main_video_url && 
+          camper.dreams?.length > 0 && 
+          camper.projects?.length > 0 && 
+          camper.videos?.length > 0)
+      ).length;
+
+      setData({
+        totalRegistrados: campusCampers.length,
+        registrosIncompletos: incompleteCount,
+        campersPendientes: campusCampers.map(camper => ({
+          ...camper,
+          isComplete: !!(camper.main_video_url && 
+                        camper.dreams?.length > 0 && 
+                        camper.projects?.length > 0 && 
+                        camper.videos?.length > 0),
+          hasDreams: camper.dreams?.length > 0,
+          hasProjects: camper.projects?.length > 0,
+          hasVideos: camper.videos?.length > 0
+        })),
+        showAll: false,
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error(error.message || "Error al cargar los datos del campus");
+      // Si falla, volvemos a la vista general
+      setViewMode("all");
+      fetchAllCampersData();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -113,7 +176,11 @@ const AdminDashboard = () => {
 
     const initializeDashboard = async () => {
       try {
-        await fetchAllCampersData();
+        if (viewMode === "all") {
+          await fetchAllCampersData();
+        } else {
+          await fetchMyCampusCampers();
+        }
       } catch (error) {
         console.error("Error initializing dashboard:", error);
         if (error.message.includes('401')) {
@@ -123,12 +190,17 @@ const AdminDashboard = () => {
     };
 
     initializeDashboard();
-  }, []);
+  }, [viewMode]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     toast.success("Sesión cerrada exitosamente");
     navigate("/");
+  };
+
+  const toggleViewMode = () => {
+    setViewMode(viewMode === "all" ? "myCampus" : "all");
+    setCurrentPage(1); // Reset pagination when changing view
   };
 
   const filteredCampers = useMemo(() => {
@@ -209,21 +281,44 @@ const AdminDashboard = () => {
                   <Check className="h-4 w-4 mr-1" />
                   Completados ({data.totalRegistrados - data.registrosIncompletos})
                 </Badge>
+                <Badge
+                  variant={viewMode === "myCampus" ? "default" : "secondary"}
+                  className="cursor-pointer ml-4"
+                  onClick={toggleViewMode}
+                >
+                  <MapPin className="h-4 w-4 mr-1" />
+                  {viewMode === "all" ? "Ver Mi Campus" : "Ver Todos"}
+                </Badge>
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm text-white transition-colors"
-            >
-              Cerrar sesión
-            </button>
+            <div className="flex items-center gap-4">
+              {viewMode === "myCampus" && campusInfo && (
+                <span className="text-sm text-white/80">
+                  Campus: <strong>{campusInfo.campusName}</strong>
+                </span>
+              )}
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm text-white transition-colors"
+              >
+                Cerrar sesión
+              </button>
+            </div>
           </div>
         </header>
         <main className="flex-1 p-6 overflow-auto">
           <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg p-6">
             <CardHeader>
-              <CardTitle className="text-white">Estado de Registro de Campers</CardTitle>
-              <CardDescription className="text-white/60">Seguimiento detallado del progreso de registro</CardDescription>
+              <CardTitle className="text-white">
+                {viewMode === "myCampus" 
+                  ? `Campers del Campus ${campusInfo?.campusName || ''}` 
+                  : "Estado de Registro de Campers"}
+              </CardTitle>
+              <CardDescription className="text-white/60">
+                {viewMode === "myCampus" 
+                  ? `Seguimiento de campers asignados a tu campus` 
+                  : "Seguimiento detallado del progreso de registro"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -244,6 +339,12 @@ const AdminDashboard = () => {
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-8">
                           Cargando información...
+                        </TableCell>
+                      </TableRow>
+                    ) : paginatedCampers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8">
+                          No se encontraron campers que coincidan con los criterios de búsqueda.
                         </TableCell>
                       </TableRow>
                     ) : (
