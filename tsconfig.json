@@ -1,9 +1,12 @@
 {
-    "compilerOptions": {
-      "baseUrl": ".",
-      "paths": {
-        "@/*": ["src/*"]
-      }
+  "compilerOptions": {
+    "types": ["react", "react-dom", "csstype"], 
+    "jsx": "react-jsx", 
+    "lib": ["dom", "es2015", "esnext"], 
+    "baseUrl": ".", 
+    "paths": {
+      "@/*": ["src/*"]
     }
-  }
-  
+  },
+  "include": ["src", "index.d.ts"] 
+}

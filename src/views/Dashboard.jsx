@@ -68,18 +68,18 @@ const AdminDashboard = () => {
   const fetchCampersData = async () => {
     try {
       setLoading(true);
-      
+
       // Obtener el usuario actual y su rol
       const storedUser = getCurrentUserFromStorage();
       const userRole = storedUser?.role_id;
-      
+
       // Determinar qué endpoint usar según el rol
       let endpoint = endpoints.allCampersDetails; // Por defecto, todos los campers (admin)
-      
+
       if (userRole === 5) { // Si es regionalAdmin
         endpoint = endpoints.myCampusCampers; // Usa el endpoint para obtener campers de su campus
       }
-      
+
       const response = await fetch(endpoint, {
         headers: getHeaders()
       });
@@ -96,11 +96,11 @@ const AdminDashboard = () => {
       }
 
       const responseData = await response.json();
-      
+
       // Procesar datos según el endpoint usado
       let allCampers = [];
       let campusName = null;
-      
+
       if (userRole === 5) {
         // Para regionalAdmin, los datos vienen de manera diferente
         const campusData = responseData.data || {};
@@ -110,11 +110,11 @@ const AdminDashboard = () => {
         // Para admin, los datos vienen directamente
         allCampers = responseData.data || [];
       }
-      
-      const incompleteCount = allCampers.filter(camper => 
-        !(camper.main_video_url && 
-          camper.dreams?.length > 0 && 
-          camper.projects?.length > 0 && 
+
+      const incompleteCount = allCampers.filter(camper =>
+        !(camper.main_video_url &&
+          camper.dreams?.length > 0 &&
+          camper.projects?.length > 0 &&
           camper.videos?.length > 0)
       ).length;
 
@@ -123,10 +123,10 @@ const AdminDashboard = () => {
         registrosIncompletos: incompleteCount,
         campersPendientes: allCampers.map(camper => ({
           ...camper,
-          isComplete: !!(camper.main_video_url && 
-                        camper.dreams?.length > 0 && 
-                        camper.projects?.length > 0 && 
-                        camper.videos?.length > 0),
+          isComplete: !!(camper.main_video_url &&
+            camper.dreams?.length > 0 &&
+            camper.projects?.length > 0 &&
+            camper.videos?.length > 0),
           hasDreams: camper.dreams?.length > 0,
           hasProjects: camper.projects?.length > 0,
           hasVideos: camper.videos?.length > 0
@@ -261,13 +261,13 @@ const AdminDashboard = () => {
           <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg p-6">
             <CardHeader>
               <CardTitle className="text-white">
-                {isRegionalAdmin 
-                  ? `Campers del Campus ${data.campusName || ''}` 
+                {isRegionalAdmin
+                  ? `Campers del Campus ${data.campusName || ''}`
                   : "Estado de Registro de Campers"}
               </CardTitle>
               <CardDescription className="text-white/60">
-                {isRegionalAdmin 
-                  ? `Seguimiento de campers asignados a tu campus` 
+                {isRegionalAdmin
+                  ? `Seguimiento de campers asignados a tu campus`
                   : "Seguimiento detallado del progreso de registro"}
               </CardDescription>
             </CardHeader>
@@ -325,37 +325,43 @@ const AdminDashboard = () => {
                 </Table>
               </div>
               {!loading && totalPages > 1 && (
-                <div className="mt-4 flex justify-center">
+                <div className="mt-6 flex justify-center">
                   <Pagination>
-                    <PaginationContent>
-                      <PaginationItem className="mx-1">
+                    <PaginationContent className="gap-2">
+                      <PaginationItem>
                         <PaginationPrevious
                           onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                           disabled={currentPage === 1}
-                          className="transition-transform transform hover:scale-110"
+                          className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2 "
                         />
                       </PaginationItem>
                       {[...Array(totalPages)].map((_, index) => (
-                        <PaginationItem key={index + 1} className="mx-1">
+                        <PaginationItem key={index + 1}>
                           <PaginationLink
                             onClick={() => setCurrentPage(index + 1)}
                             isActive={currentPage === index + 1}
+                            className={`rounded-medium px-3 py-2 text-sm font-medium transition-colors ${currentPage === index + 1
+                                ? 'bg-white-100 text-blue'
+                                : 'text-white-700 hover:bg-white-200'
+                              }`}
                           >
                             {index + 1}
                           </PaginationLink>
                         </PaginationItem>
                       ))}
-                      <PaginationItem className="mx-1">
+                      <PaginationItem>
                         <PaginationNext
-                          onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                           disabled={currentPage === totalPages}
-                          className="transition-transform transform hover:scale-110"
+                          className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2  "
                         />
                       </PaginationItem>
                     </PaginationContent>
                   </Pagination>
                 </div>
               )}
+
+
             </CardContent>
           </Card>
         </main>
