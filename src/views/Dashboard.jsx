@@ -41,24 +41,46 @@ const AdminDashboard = () => {
     totalRegistrados: 0,
     registrosIncompletos: 0,
     campersPendientes: [],
-    showAll: true,
+    campusName: null
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [viewMode, setViewMode] = useState("all"); // 'all' o 'myCampus'
-  const [campusInfo, setCampusInfo] = useState(null);
 
   const getHeaders = () => ({
     Authorization: `Bearer ${localStorage.getItem("token")}`,
     "Content-Type": "application/json",
   });
 
-  const fetchAllCampersData = async () => {
+  // Función para obtener el usuario actual desde localStorage
+  const getCurrentUserFromStorage = () => {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr);
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+      return null;
+    }
+  };
+
+  const fetchCampersData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(endpoints.allCampersDetails, {
+      
+      // Obtener el usuario actual y su rol
+      const storedUser = getCurrentUserFromStorage();
+      const userRole = storedUser?.role_id;
+      
+      // Determinar qué endpoint usar según el rol
+      let endpoint = endpoints.allCampersDetails; // Por defecto, todos los campers (admin)
+      
+      if (userRole === 5) { // Si es regionalAdmin
+        endpoint = endpoints.myCampusCampers; // Usa el endpoint para obtener campers de su campus
+      }
+      
+      const response = await fetch(endpoint, {
         headers: getHeaders()
       });
 
@@ -74,7 +96,20 @@ const AdminDashboard = () => {
       }
 
       const responseData = await response.json();
-      const allCampers = responseData.data || [];
+      
+      // Procesar datos según el endpoint usado
+      let allCampers = [];
+      let campusName = null;
+      
+      if (userRole === 5) {
+        // Para regionalAdmin, los datos vienen de manera diferente
+        const campusData = responseData.data || {};
+        allCampers = campusData.campers || [];
+        campusName = campusData.campusName;
+      } else {
+        // Para admin, los datos vienen directamente
+        allCampers = responseData.data || [];
+      }
       
       const incompleteCount = allCampers.filter(camper => 
         !(camper.main_video_url && 
@@ -96,72 +131,11 @@ const AdminDashboard = () => {
           hasProjects: camper.projects?.length > 0,
           hasVideos: camper.videos?.length > 0
         })),
-        showAll: true,
+        campusName: campusName
       });
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error al cargar los datos");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMyCampusCampers = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(endpoints.myCampusCampers, {
-        headers: getHeaders()
-      });
-
-      if (response.status === 401) {
-        toast.error("Sesión expirada o inválida");
-        logout();
-        return;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al cargar los datos de tu campus');
-      }
-
-      const responseData = await response.json();
-      const campusData = responseData.data || {};
-      const campusCampers = campusData.campers || [];
-      
-      setCampusInfo({
-        campusId: campusData.campusId,
-        campusName: campusData.campusName,
-        totalCampers: campusData.totalCampers
-      });
-      
-      const incompleteCount = campusCampers.filter(camper => 
-        !(camper.main_video_url && 
-          camper.dreams?.length > 0 && 
-          camper.projects?.length > 0 && 
-          camper.videos?.length > 0)
-      ).length;
-
-      setData({
-        totalRegistrados: campusCampers.length,
-        registrosIncompletos: incompleteCount,
-        campersPendientes: campusCampers.map(camper => ({
-          ...camper,
-          isComplete: !!(camper.main_video_url && 
-                        camper.dreams?.length > 0 && 
-                        camper.projects?.length > 0 && 
-                        camper.videos?.length > 0),
-          hasDreams: camper.dreams?.length > 0,
-          hasProjects: camper.projects?.length > 0,
-          hasVideos: camper.videos?.length > 0
-        })),
-        showAll: false,
-      });
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error(error.message || "Error al cargar los datos del campus");
-      // Si falla, volvemos a la vista general
-      setViewMode("all");
-      fetchAllCampersData();
     } finally {
       setLoading(false);
     }
@@ -174,33 +148,14 @@ const AdminDashboard = () => {
       return;
     }
 
-    const initializeDashboard = async () => {
-      try {
-        if (viewMode === "all") {
-          await fetchAllCampersData();
-        } else {
-          await fetchMyCampusCampers();
-        }
-      } catch (error) {
-        console.error("Error initializing dashboard:", error);
-        if (error.message.includes('401')) {
-          logout();
-        }
-      }
-    };
-
-    initializeDashboard();
-  }, [viewMode]);
+    fetchCampersData();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     toast.success("Sesión cerrada exitosamente");
     navigate("/");
-  };
-
-  const toggleViewMode = () => {
-    setViewMode(viewMode === "all" ? "myCampus" : "all");
-    setCurrentPage(1); // Reset pagination when changing view
   };
 
   const filteredCampers = useMemo(() => {
@@ -229,6 +184,10 @@ const AdminDashboard = () => {
       {status ? <Check className="h-5 w-5 text-green-500" /> : <X className="h-5 w-5 text-red-500" />}
     </div>
   );
+
+  // Obtener el usuario y rol para mostrar el título correcto
+  const storedUser = useMemo(() => getCurrentUserFromStorage(), []);
+  const isRegionalAdmin = storedUser?.role_id === 5;
 
   if (loading) {
     return (
@@ -281,20 +240,12 @@ const AdminDashboard = () => {
                   <Check className="h-4 w-4 mr-1" />
                   Completados ({data.totalRegistrados - data.registrosIncompletos})
                 </Badge>
-                <Badge
-                  variant={viewMode === "myCampus" ? "default" : "secondary"}
-                  className="cursor-pointer ml-4"
-                  onClick={toggleViewMode}
-                >
-                  <MapPin className="h-4 w-4 mr-1" />
-                  {viewMode === "all" ? "Ver Mi Campus" : "Ver Todos"}
-                </Badge>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {viewMode === "myCampus" && campusInfo && (
+              {isRegionalAdmin && data.campusName && (
                 <span className="text-sm text-white/80">
-                  Campus: <strong>{campusInfo.campusName}</strong>
+                  Campus: <strong>{data.campusName}</strong>
                 </span>
               )}
               <button
@@ -310,12 +261,12 @@ const AdminDashboard = () => {
           <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg p-6">
             <CardHeader>
               <CardTitle className="text-white">
-                {viewMode === "myCampus" 
-                  ? `Campers del Campus ${campusInfo?.campusName || ''}` 
+                {isRegionalAdmin 
+                  ? `Campers del Campus ${data.campusName || ''}` 
                   : "Estado de Registro de Campers"}
               </CardTitle>
               <CardDescription className="text-white/60">
-                {viewMode === "myCampus" 
+                {isRegionalAdmin 
                   ? `Seguimiento de campers asignados a tu campus` 
                   : "Seguimiento detallado del progreso de registro"}
               </CardDescription>
