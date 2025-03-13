@@ -318,11 +318,11 @@ const AdminDashboard = () => {
                   <div className="text-center py-8">No se encontraron campers.</div>
                 ) : (
                   paginatedCampers.map((camper) => (
-                    <Card key={camper.camper_id} className="bg-[#3B3768] border border-white/10 p-4 rounded-lg flex flex-col items-center text-center gap-3">
+                    <Card key={camper.camper_id} className="bg-[#3B3768] border border-white/10 p-2 rounded-lg flex flex-col items-center text-center gap-3">
                       <img src={camper.profile_picture || "/api/placeholder/100/100"} alt={camper.full_name} className="w-20 h-20 rounded-full" />
                       <h3 className="truncate">{camper.full_name}</h3>
                       <div className="flex justify-center gap-2 flex-wrap">
-                        <div className="flex items-center gap-1">{renderStatusIcon(camper.main_video_url)}<span className="text-xs">Video</span></div>
+                        <div className="flex items-center gap-1">{renderStatusIcon(camper.main_video_url)}<span className="text-xs">Video Principal</span></div>
                         <div className="flex items-center gap-1">{renderStatusIcon(camper.hasDreams)}<span className="text-xs">Sueños</span></div>
                         <div className="flex items-center gap-1">{renderStatusIcon(camper.hasProjects)}<span className="text-xs">Proyectos</span></div>
                         <div className="flex items-center gap-1">{renderStatusIcon(camper.hasVideos)}<span className="text-xs">Videos</span></div>
