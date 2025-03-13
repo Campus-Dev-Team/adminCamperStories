@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/pagination";
 import { useAuth } from "../contexts/AuthContext";
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 9;
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -159,40 +159,40 @@ const AdminDashboard = () => {
   };
 
   const filteredCampers = useMemo(() => {
-  let filtered = data.campersPendientes;
+    let filtered = data.campersPendientes;
 
-  // Filtro por nombre
-  if (searchTerm) {
-    filtered = filtered.filter((camper) =>
-      camper?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }
+    // Filtro por nombre
+    if (searchTerm) {
+      filtered = filtered.filter((camper) =>
+        camper?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
 
-  // Filtro por estado
-  switch (activeFilter) {
-    case "pending":
-      filtered = filtered.filter((camper) => !camper.isComplete);
-      break;
-    case "complete":
-      filtered = filtered.filter((camper) => camper.isComplete);
-      break;
-    default:
-      break;
-  }
+    // Filtro por estado
+    switch (activeFilter) {
+      case "pending":
+        filtered = filtered.filter((camper) => !camper.isComplete);
+        break;
+      case "complete":
+        filtered = filtered.filter((camper) => camper.isComplete);
+        break;
+      default:
+        break;
+    }
 
-  return filtered;
-}, [data.campersPendientes, searchTerm, activeFilter]);
+    return filtered;
+  }, [data.campersPendientes, searchTerm, activeFilter]);
 
-// Reseteamos la página cuando cambia el filtro o la búsqueda
-useEffect(() => {
-  setCurrentPage(1);
-}, [searchTerm, activeFilter]);
+  // Reseteamos la página cuando cambia el filtro o la búsqueda
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeFilter]);
 
-const totalPages = Math.ceil(filteredCampers.length / ITEMS_PER_PAGE);
-const paginatedCampers = filteredCampers.slice(
-  (currentPage - 1) * ITEMS_PER_PAGE,
-  currentPage * ITEMS_PER_PAGE
-);
+  const totalPages = Math.ceil(filteredCampers.length / ITEMS_PER_PAGE);
+  const paginatedCampers = filteredCampers.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
 
   const renderStatusIcon = (status) => (
@@ -214,57 +214,42 @@ const paginatedCampers = filteredCampers.slice(
   }
 
   return (
-    <div className="flex h-screen bg-[#1E1B4B] text-white font-sans relative">
+    <div className="min-h-screen bg-[#07073b] text-white font-sans relative overflow-hidden flex flex-col md:ml-64">
       <ToastContainer theme="dark" />
       <Navbar />
-      <div className="flex-1 flex flex-col w-full">
-        <header className="border-b border-white/10 backdrop-blur-xl sticky top-0 z-10 bg-transparent">
-          <div className="flex flex-col md:flex-row h-auto md:h-16 items-start md:items-center justify-between px-4 py-3 md:px-6">
-            <div className="flex items-center w-full md:w-auto mb-3 md:mb-0">
-              {/* Barra de búsqueda */}
-              <div className="relative w-full md:w-72">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder="Buscar camper..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/60 w-full"
-                />
-              </div>
+      <div className="flex-1 flex flex-col m-2 w-full overflow-hidden">
+        <header className="backdrop-blur-xl m-2 sticky top-0 z-10 bg-transparent">
+          <div className="flex flex-col md:flex-row items-start justify-between px-4 py-3 md:px-6">
+            <div className="relative w-full md:w-72 mb-4 md:mb-0">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
+              <Input
+                type="text"
+                placeholder="Buscar camper..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/60 w-full"
+              />
             </div>
-            {/* Filtros con más espacio entre ellos */}
-            <div className="flex flex-wrap gap-2 md:gap-4 items-center w-full md:w-auto">
-              <Badge
-                variant={activeFilter === "all" ? "default" : "secondary"}
-                className="cursor-pointer"
-                onClick={() => setActiveFilter("all")}
-              >
-                <Users className="h-4 w-4 mr-1" />
-                Todos ({data.totalRegistrados})
-              </Badge>
-              <Badge
-                variant={activeFilter === "pending" ? "default" : "secondary"}
-                className="cursor-pointer"
-                onClick={() => setActiveFilter("pending")}
-              >
-                <UserX className="h-4 w-4 mr-1" />
-                Pendientes ({data.registrosIncompletos})
-              </Badge>
-              <Badge
-                variant={activeFilter === "complete" ? "default" : "secondary"}
-                className="cursor-pointer"
-                onClick={() => setActiveFilter("complete")}
-              >
-                <Check className="h-4 w-4 mr-1" />
-                Completados ({data.totalRegistrados - data.registrosIncompletos})
-              </Badge>
+            <div className="flex flex-wrap gap-2 md:gap-4 items-center">
+              {["all", "pending", "complete"].map((f) => (
+                <Badge
+                  key={f}
+                  variant={activeFilter === f ? "default" : "secondary"}
+                  className="cursor-pointer py-2 px-4 rounded hover:bg-white/10"
+                  onClick={() => setActiveFilter(f)}
+                >
+                  {f === "all" && <><Users className="h-4 w-4 mr-1" /> Todos ({data.totalRegistrados})</>}
+                  {f === "pending" && <><UserX className="h-4 w-4 mr-1" /> Pendientes ({data.registrosIncompletos})</>}
+                  {f === "complete" && <><Check className="h-4 w-4 mr-1" /> Completados ({data.totalRegistrados - data.registrosIncompletos})</>}
+                </Badge>
+              ))}
             </div>
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
-          <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg p-4 md:p-6">
+        <main className="flex-1 h-dvh md:p-6 overflow-auto">
+
+          <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg m-2 md:p-4">
             <CardHeader>
               <CardTitle className="text-white">
                 {isRegionalAdmin
@@ -288,7 +273,7 @@ const paginatedCampers = filteredCampers.slice(
                       <TableHead className="text-white/80 text-center">Sueños</TableHead>
                       <TableHead className="text-white/80 text-center">Proyectos</TableHead>
                       <TableHead className="text-white/80 text-center">Videos</TableHead>
-                      <TableHead className="text-white/80">Estado</TableHead>
+                      <TableHead className="text-white/80 p-3">Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -347,8 +332,8 @@ const paginatedCampers = filteredCampers.slice(
                             onClick={() => setCurrentPage(index + 1)}
                             isActive={currentPage === index + 1}
                             className={`rounded-medium px-3 py-2 text-sm font-medium transition-colors ${currentPage === index + 1
-                                ? 'bg-white-100 text-blue'
-                                : 'text-white-700 hover:bg-white-200'
+                              ? 'bg-white text-blue'
+                              : 'text-white-700 hover:bg-white-200'
                               }`}
                           >
                             {index + 1}
@@ -372,6 +357,7 @@ const paginatedCampers = filteredCampers.slice(
       </div>
     </div>
   );
+
 };
 
 export default AdminDashboard;
