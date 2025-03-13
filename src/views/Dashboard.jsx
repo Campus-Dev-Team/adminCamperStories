@@ -247,117 +247,134 @@ const AdminDashboard = () => {
           </div>
         </header>
 
-        <main className="flex-1 h-dvh md:p-6 overflow-auto">
+        <main className="flex-1 h-dvh md:p-6 pr-4 overflow-auto">
 
-          <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg m-2 md:p-4">
+        <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg m-2 md:p-4">
             <CardHeader>
-              <CardTitle className="text-white break-words">
-                {isRegionalAdmin
-                  ? `Campers del Campus ${data.campusName || ''}`
-                  : "Estado de Registro de Campers"}
-              </CardTitle>
-              <CardDescription className="text-white/60 break-words">
-                {isRegionalAdmin
-                  ? `Seguimiento de campers asignados a tu campus`
-                  : "Seguimiento detallado del progreso de registro"}
-              </CardDescription>
+              <CardTitle>{isRegionalAdmin ? `Campers del Campus ${data.campusName}` : "Estado de Registro de Campers"}</CardTitle>
+              <CardDescription>Seguimiento detallado del progreso de registro</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
+
+              <div className="hidden sm:block">
+                <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader>
-                    <TableRow className="border-white/10">
-                      <TableHead className="text-white/80 whitespace-nowrap">Foto</TableHead>
-                      <TableHead className="text-white/80 whitespace-nowrap">Nombre</TableHead>
-                      <TableHead className="text-white/80 text-center whitespace-nowrap">Video Principal</TableHead>
-                      <TableHead className="text-white/80 text-center whitespace-nowrap">Sueños</TableHead>
-                      <TableHead className="text-white/80 text-center whitespace-nowrap">Proyectos</TableHead>
-                      <TableHead className="text-white/80 text-center whitespace-nowrap">Videos</TableHead>
-                      <TableHead className="text-white/80 p-3 whitespace-nowrap">Estado</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {loading ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
-                          Cargando información...
-                        </TableCell>
-                      </TableRow>
-                    ) : paginatedCampers.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
-                          No se encontraron campers que coincidan con los criterios de búsqueda.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      paginatedCampers.map((camper) => (
-                        <TableRow key={camper.camper_id} className="border-white/10 hover:bg-white/5 transition">
-                          <TableCell>
-                            <img
-                              src={camper.profile_picture || "/api/placeholder/40/40"}
-                              alt={camper.full_name}
-                              className="w-10 h-10 rounded-full object-cover border border-white/20"
-                            />
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap max-w-[200px] truncate">
-                            {camper.full_name}
-                          </TableCell>
-                          <TableCell className="text-center">{renderStatusIcon(camper.main_video_url)}</TableCell>
-                          <TableCell className="text-center">{renderStatusIcon(camper.hasDreams)}</TableCell>
-                          <TableCell className="text-center">{renderStatusIcon(camper.hasProjects)}</TableCell>
-                          <TableCell className="text-center">{renderStatusIcon(camper.hasVideos)}</TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            <Badge variant={camper.isComplete ? "success" : "destructive"}>
-                              {camper.isComplete ? "Completo" : "Pendiente"}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+          <TableHeader>
+            <TableRow className="border-white/10">
+              <TableHead className="text-white/80 whitespace-nowrap">Foto</TableHead>
+              <TableHead className="text-white/80 whitespace-nowrap">Nombre</TableHead>
+              <TableHead className="text-white/80 text-center whitespace-nowrap">Video Principal</TableHead>
+              <TableHead className="text-white/80 text-center whitespace-nowrap">Sueños</TableHead>
+              <TableHead className="text-white/80 text-center whitespace-nowrap">Proyectos</TableHead>
+              <TableHead className="text-white/80 text-center whitespace-nowrap">Videos</TableHead>
+              <TableHead className="text-white/80 p-3 whitespace-nowrap">Estado</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8">
+                  Cargando información...
+                </TableCell>
+              </TableRow>
+            ) : paginatedCampers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8">
+                  No se encontraron campers que coincidan con los criterios de búsqueda.
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedCampers.map((camper) => (
+                <TableRow key={camper.camper_id} className="border-white/10 hover:bg-white/5 transition">
+                  <TableCell>
+                    <img
+                      src={camper.profile_picture || "/api/placeholder/40/40"}
+                      alt={camper.full_name}
+                      className="w-10 h-10 rounded-full object-cover border border-white/20"
+                    />
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap max-w-[200px] truncate">
+                    {camper.full_name}
+                  </TableCell>
+                  <TableCell className="text-center">{renderStatusIcon(camper.main_video_url)}</TableCell>
+                  <TableCell className="text-center">{renderStatusIcon(camper.hasDreams)}</TableCell>
+                  <TableCell className="text-center">{renderStatusIcon(camper.hasProjects)}</TableCell>
+                  <TableCell className="text-center">{renderStatusIcon(camper.hasVideos)}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <Badge variant={camper.isComplete ? "success" : "destructive"}>
+                      {camper.isComplete ? "Completo" : "Pendiente"}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table> 
+                </div>
               </div>
 
-              {/* Paginación */}
-              {!loading && totalPages > 1 && (
-                <div className="mt-6 flex justify-center">
-                  <Pagination>
-                    <PaginationContent className="gap-2 flex-wrap">
-                      <PaginationItem>
-                        <PaginationPrevious
-                          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                          disabled={currentPage === 1}
-                          className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2"
-                        />
-                      </PaginationItem>
-                      {[...Array(totalPages)].map((_, index) => (
-                        <PaginationItem key={index + 1}>
-                          <PaginationLink
-                            onClick={() => setCurrentPage(index + 1)}
-                            isActive={currentPage === index + 1}
-                            className={`rounded-medium px-3 py-2 text-sm font-medium transition-colors ${currentPage === index + 1
-                                ? 'bg-white text-blue'
-                                : 'text-white-700 hover:bg-white-200'
-                              }`}
-                          >
-                            {index + 1}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ))}
-                      <PaginationItem>
-                        <PaginationNext
-                          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                          disabled={currentPage === totalPages}
-                          className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2"
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </main>
+              <div className="block sm:hidden grid gap-4">
+                {paginatedCampers.length === 0 ? (
+                  <div className="text-center py-8">No se encontraron campers.</div>
+                ) : (
+                  paginatedCampers.map((camper) => (
+                    <Card key={camper.camper_id} className="bg-[#3B3768] border border-white/10 p-4 rounded-lg flex flex-col items-center text-center gap-3">
+                      <img src={camper.profile_picture || "/api/placeholder/100/100"} alt={camper.full_name} className="w-20 h-20 rounded-full" />
+                      <h3 className="truncate">{camper.full_name}</h3>
+                      <div className="flex justify-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1">{renderStatusIcon(camper.main_video_url)}<span className="text-xs">Video</span></div>
+                        <div className="flex items-center gap-1">{renderStatusIcon(camper.hasDreams)}<span className="text-xs">Sueños</span></div>
+                        <div className="flex items-center gap-1">{renderStatusIcon(camper.hasProjects)}<span className="text-xs">Proyectos</span></div>
+                        <div className="flex items-center gap-1">{renderStatusIcon(camper.hasVideos)}<span className="text-xs">Videos</span></div>
+                      </div>
+                      <Badge variant={camper.isComplete ? "success" : "destructive"}>{camper.isComplete ? "Completo" : "Pendiente"}</Badge>
+                    </Card>
+                  ))
+                )}
+              </div>
+
+
+      {/* Paginación */}
+      {!loading && totalPages > 1 && (
+        <div className="mt-6 flex justify-center">
+          <Pagination>
+            <PaginationContent className="gap-2 flex-wrap">
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2"
+                />
+              </PaginationItem>
+              {[...Array(totalPages)].map((_, index) => (
+                <PaginationItem key={index + 1}>
+                  <PaginationLink
+                    onClick={() => setCurrentPage(index + 1)}
+                    isActive={currentPage === index + 1}
+                    className={`rounded-medium px-3 py-2 text-sm font-medium transition-colors ${
+                      currentPage === index + 1
+                        ? 'bg-white text-blue'
+                        : 'text-white-700 hover:bg-white-200'
+                    }`}
+                  >
+                    {index + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2"
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+    </CardContent>
+  </Card>
+</main>
 
       </div>
     </div>
