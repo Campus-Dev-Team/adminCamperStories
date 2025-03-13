@@ -251,12 +251,12 @@ const AdminDashboard = () => {
 
           <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg m-2 md:p-4">
             <CardHeader>
-              <CardTitle className="text-white">
+              <CardTitle className="text-white break-words">
                 {isRegionalAdmin
                   ? `Campers del Campus ${data.campusName || ''}`
                   : "Estado de Registro de Campers"}
               </CardTitle>
-              <CardDescription className="text-white/60">
+              <CardDescription className="text-white/60 break-words">
                 {isRegionalAdmin
                   ? `Seguimiento de campers asignados a tu campus`
                   : "Seguimiento detallado del progreso de registro"}
@@ -267,13 +267,13 @@ const AdminDashboard = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-white/10">
-                      <TableHead className="text-white/80">Foto</TableHead>
-                      <TableHead className="text-white/80">Nombre</TableHead>
-                      <TableHead className="text-white/80 text-center">Video Principal</TableHead>
-                      <TableHead className="text-white/80 text-center">Sueños</TableHead>
-                      <TableHead className="text-white/80 text-center">Proyectos</TableHead>
-                      <TableHead className="text-white/80 text-center">Videos</TableHead>
-                      <TableHead className="text-white/80 p-3">Estado</TableHead>
+                      <TableHead className="text-white/80 whitespace-nowrap">Foto</TableHead>
+                      <TableHead className="text-white/80 whitespace-nowrap">Nombre</TableHead>
+                      <TableHead className="text-white/80 text-center whitespace-nowrap">Video Principal</TableHead>
+                      <TableHead className="text-white/80 text-center whitespace-nowrap">Sueños</TableHead>
+                      <TableHead className="text-white/80 text-center whitespace-nowrap">Proyectos</TableHead>
+                      <TableHead className="text-white/80 text-center whitespace-nowrap">Videos</TableHead>
+                      <TableHead className="text-white/80 p-3 whitespace-nowrap">Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -299,11 +299,13 @@ const AdminDashboard = () => {
                               className="w-10 h-10 rounded-full object-cover border border-white/20"
                             />
                           </TableCell>
-                          <TableCell className="whitespace-nowrap">{camper.full_name}</TableCell>
-                          <TableCell>{renderStatusIcon(camper.main_video_url)}</TableCell>
-                          <TableCell>{renderStatusIcon(camper.hasDreams)}</TableCell>
-                          <TableCell>{renderStatusIcon(camper.hasProjects)}</TableCell>
-                          <TableCell>{renderStatusIcon(camper.hasVideos)}</TableCell>
+                          <TableCell className="whitespace-nowrap max-w-[200px] truncate">
+                            {camper.full_name}
+                          </TableCell>
+                          <TableCell className="text-center">{renderStatusIcon(camper.main_video_url)}</TableCell>
+                          <TableCell className="text-center">{renderStatusIcon(camper.hasDreams)}</TableCell>
+                          <TableCell className="text-center">{renderStatusIcon(camper.hasProjects)}</TableCell>
+                          <TableCell className="text-center">{renderStatusIcon(camper.hasVideos)}</TableCell>
                           <TableCell className="whitespace-nowrap">
                             <Badge variant={camper.isComplete ? "success" : "destructive"}>
                               {camper.isComplete ? "Completo" : "Pendiente"}
@@ -315,6 +317,8 @@ const AdminDashboard = () => {
                   </TableBody>
                 </Table>
               </div>
+
+              {/* Paginación */}
               {!loading && totalPages > 1 && (
                 <div className="mt-6 flex justify-center">
                   <Pagination>
@@ -332,8 +336,8 @@ const AdminDashboard = () => {
                             onClick={() => setCurrentPage(index + 1)}
                             isActive={currentPage === index + 1}
                             className={`rounded-medium px-3 py-2 text-sm font-medium transition-colors ${currentPage === index + 1
-                              ? 'bg-white text-blue'
-                              : 'text-white-700 hover:bg-white-200'
+                                ? 'bg-white text-blue'
+                                : 'text-white-700 hover:bg-white-200'
                               }`}
                           >
                             {index + 1}
@@ -354,6 +358,7 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </main>
+
       </div>
     </div>
   );

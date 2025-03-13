@@ -17,7 +17,7 @@ const Navbar = ({ handleButtonClick }) => {
 
     return (
         <>
-            {/* Sidebar SOLO para pantallas grandes */}
+            
             <nav className="hidden md:flex w-64 h-screen bg-[#1e1b4b] border-r border-white/10 flex-col pt-12 p-2 fixed left-0 top-0">
                 <img src={campushm} alt="Campus" className="w-32 h-auto mx-auto -mb-2" />
                 <h2 className="text-xl font-bold mb-4 text-center pt-1 text-white">Admin Panel</h2>
@@ -29,9 +29,8 @@ const Navbar = ({ handleButtonClick }) => {
                 <button onClick={handleLogout} className="w-40 py-2 px-4 rounded bg-red-500 hover:bg-red-600 transition text-white mt-auto mb-4 mx-auto">Cerrar sesión</button>
             </nav>
 
-            {/* Menú hamburguesa SOLO para móviles */}
-            <nav className="md:hidden w-full bg-[#2E2B5B] text-white p-4 relative z-20">
-                {/* Botón hamburguesa */}
+            <nav className="md:hidden w-full bg-[#1e1b4b] text-white p-4 fixed top-0 left-0 relative z-20">
+        
                 <div className="flex justify-between items-center">
                     <img src={campushm} alt="Campus" className="w-20 h-auto" />
                     <button
@@ -44,9 +43,9 @@ const Navbar = ({ handleButtonClick }) => {
                     </button>
                 </div>
 
-                {/* Contenido del menú hamburguesa */}
+                
                 {isOpen && (
-                    <div className="absolute top-16 left-0 w-full bg-[#2E2B5B] border-t border-white/10 p-4">
+                    <div className="absolute top-[64px] right-4 w-60 bg-[#1e1b4b] border border-white/10 rounded-lg shadow-xl p-4 z-50 animate-fade-in-down">
                         <h2 className="text-xl font-bold mb-4 text-center pt-1">Admin Panel</h2>
                         <ul className="space-y-4 flex flex-col items-center">
                             <li><button onClick={handleButtonClick} className="w-40 py-2 px-4 rounded hover:bg-white/10 transition text-center">Dashboard</button></li>
