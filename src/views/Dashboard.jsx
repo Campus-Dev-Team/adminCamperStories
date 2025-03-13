@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/pagination";
 import { useAuth } from "../contexts/AuthContext";
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 9;
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -68,18 +68,18 @@ const AdminDashboard = () => {
   const fetchCampersData = async () => {
     try {
       setLoading(true);
-      
+
       // Obtener el usuario actual y su rol
       const storedUser = getCurrentUserFromStorage();
       const userRole = storedUser?.role_id;
-      
+
       // Determinar qué endpoint usar según el rol
       let endpoint = endpoints.allCampersDetails; // Por defecto, todos los campers (admin)
-      
+
       if (userRole === 5) { // Si es regionalAdmin
         endpoint = endpoints.myCampusCampers; // Usa el endpoint para obtener campers de su campus
       }
-      
+
       const response = await fetch(endpoint, {
         headers: getHeaders()
       });
@@ -96,11 +96,11 @@ const AdminDashboard = () => {
       }
 
       const responseData = await response.json();
-      
+
       // Procesar datos según el endpoint usado
       let allCampers = [];
       let campusName = null;
-      
+
       if (userRole === 5) {
         // Para regionalAdmin, los datos vienen de manera diferente
         const campusData = responseData.data || {};
@@ -110,11 +110,11 @@ const AdminDashboard = () => {
         // Para admin, los datos vienen directamente
         allCampers = responseData.data || [];
       }
-      
-      const incompleteCount = allCampers.filter(camper => 
-        !(camper.main_video_url && 
-          camper.dreams?.length > 0 && 
-          camper.projects?.length > 0 && 
+
+      const incompleteCount = allCampers.filter(camper =>
+        !(camper.main_video_url &&
+          camper.dreams?.length > 0 &&
+          camper.projects?.length > 0 &&
           camper.videos?.length > 0)
       ).length;
 
@@ -123,10 +123,10 @@ const AdminDashboard = () => {
         registrosIncompletos: incompleteCount,
         campersPendientes: allCampers.map(camper => ({
           ...camper,
-          isComplete: !!(camper.main_video_url && 
-                        camper.dreams?.length > 0 && 
-                        camper.projects?.length > 0 && 
-                        camper.videos?.length > 0),
+          isComplete: !!(camper.main_video_url &&
+            camper.dreams?.length > 0 &&
+            camper.projects?.length > 0 &&
+            camper.videos?.length > 0),
           hasDreams: camper.dreams?.length > 0,
           hasProjects: camper.projects?.length > 0,
           hasVideos: camper.videos?.length > 0
@@ -159,25 +159,41 @@ const AdminDashboard = () => {
   };
 
   const filteredCampers = useMemo(() => {
-    const filtered = data.campersPendientes.filter((camper) =>
-      camper?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    let filtered = data.campersPendientes;
 
+    // Filtro por nombre
+    if (searchTerm) {
+      filtered = filtered.filter((camper) =>
+        camper?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filtro por estado
     switch (activeFilter) {
       case "pending":
-        return filtered.filter((camper) => !camper.isComplete);
+        filtered = filtered.filter((camper) => !camper.isComplete);
+        break;
       case "complete":
-        return filtered.filter((camper) => camper.isComplete);
+        filtered = filtered.filter((camper) => camper.isComplete);
+        break;
       default:
-        return filtered;
+        break;
     }
+
+    return filtered;
   }, [data.campersPendientes, searchTerm, activeFilter]);
+
+  // Reseteamos la página cuando cambia el filtro o la búsqueda
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeFilter]);
 
   const totalPages = Math.ceil(filteredCampers.length / ITEMS_PER_PAGE);
   const paginatedCampers = filteredCampers.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
 
   const renderStatusIcon = (status) => (
     <div className="flex justify-center items-center">
@@ -198,76 +214,51 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#1E1B4B] text-white font-sans relative overflow-hidden flex">
+    <div className="min-h-screen bg-[#07073b] text-white font-sans relative overflow-hidden flex flex-col md:ml-64">
       <ToastContainer theme="dark" />
       <Navbar />
-      <div className="flex-1 flex flex-col">
-        <header className="border-b border-white/10 bg-[#2E2B5B]/50 backdrop-blur-xl sticky top-0 z-10">
-          <div className="flex h-16 items-center justify-between px-6">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder="Buscar camper..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/60"
-                />
-              </div>
-              <div className="flex gap-2">
-                <Badge
-                  variant={activeFilter === "all" ? "default" : "secondary"}
-                  className="cursor-pointer"
-                  onClick={() => setActiveFilter("all")}
-                >
-                  <Users className="h-4 w-4 mr-1" />
-                  Todos ({data.totalRegistrados})
-                </Badge>
-                <Badge
-                  variant={activeFilter === "pending" ? "default" : "secondary"}
-                  className="cursor-pointer"
-                  onClick={() => setActiveFilter("pending")}
-                >
-                  <UserX className="h-4 w-4 mr-1" />
-                  Pendientes ({data.registrosIncompletos})
-                </Badge>
-                <Badge
-                  variant={activeFilter === "complete" ? "default" : "secondary"}
-                  className="cursor-pointer"
-                  onClick={() => setActiveFilter("complete")}
-                >
-                  <Check className="h-4 w-4 mr-1" />
-                  Completados ({data.totalRegistrados - data.registrosIncompletos})
-                </Badge>
-              </div>
+      <div className="flex-1 flex flex-col m-2 w-full overflow-hidden">
+        <header className="backdrop-blur-xl m-2 sticky top-0 z-10 bg-transparent">
+          <div className="flex flex-col md:flex-row items-start justify-between px-4 py-3 md:px-6">
+            <div className="relative w-full md:w-72 mb-4 md:mb-0">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
+              <Input
+                type="text"
+                placeholder="Buscar camper..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/60 w-full"
+              />
             </div>
-            <div className="flex items-center gap-4">
-              {isRegionalAdmin && data.campusName && (
-                <span className="text-sm text-white/80">
-                  Campus: <strong>{data.campusName}</strong>
-                </span>
-              )}
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm text-white transition-colors"
-              >
-                Cerrar sesión
-              </button>
+            <div className="flex flex-wrap gap-2 md:gap-4 items-center">
+              {["all", "pending", "complete"].map((f) => (
+                <Badge
+                  key={f}
+                  variant={activeFilter === f ? "default" : "secondary"}
+                  className="cursor-pointer py-2 px-4 rounded hover:bg-white/10"
+                  onClick={() => setActiveFilter(f)}
+                >
+                  {f === "all" && <><Users className="h-4 w-4 mr-1" /> Todos ({data.totalRegistrados})</>}
+                  {f === "pending" && <><UserX className="h-4 w-4 mr-1" /> Pendientes ({data.registrosIncompletos})</>}
+                  {f === "complete" && <><Check className="h-4 w-4 mr-1" /> Completados ({data.totalRegistrados - data.registrosIncompletos})</>}
+                </Badge>
+              ))}
             </div>
           </div>
         </header>
-        <main className="flex-1 p-6 overflow-auto">
-          <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg p-6">
+
+        <main className="flex-1 h-dvh md:p-6 overflow-auto">
+
+          <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg m-2 md:p-4">
             <CardHeader>
-              <CardTitle className="text-white">
-                {isRegionalAdmin 
-                  ? `Campers del Campus ${data.campusName || ''}` 
+              <CardTitle className="text-white break-words">
+                {isRegionalAdmin
+                  ? `Campers del Campus ${data.campusName || ''}`
                   : "Estado de Registro de Campers"}
               </CardTitle>
-              <CardDescription className="text-white/60">
-                {isRegionalAdmin 
-                  ? `Seguimiento de campers asignados a tu campus` 
+              <CardDescription className="text-white/60 break-words">
+                {isRegionalAdmin
+                  ? `Seguimiento de campers asignados a tu campus`
                   : "Seguimiento detallado del progreso de registro"}
               </CardDescription>
             </CardHeader>
@@ -276,13 +267,13 @@ const AdminDashboard = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-white/10">
-                      <TableHead className="text-white/80">Foto</TableHead>
-                      <TableHead className="text-white/80">Nombre</TableHead>
-                      <TableHead className="text-white/80 text-center">Video Principal</TableHead>
-                      <TableHead className="text-white/80 text-center">Sueños</TableHead>
-                      <TableHead className="text-white/80 text-center">Proyectos</TableHead>
-                      <TableHead className="text-white/80 text-center">Videos</TableHead>
-                      <TableHead className="text-white/80">Estado</TableHead>
+                      <TableHead className="text-white/80 whitespace-nowrap">Foto</TableHead>
+                      <TableHead className="text-white/80 whitespace-nowrap">Nombre</TableHead>
+                      <TableHead className="text-white/80 text-center whitespace-nowrap">Video Principal</TableHead>
+                      <TableHead className="text-white/80 text-center whitespace-nowrap">Sueños</TableHead>
+                      <TableHead className="text-white/80 text-center whitespace-nowrap">Proyectos</TableHead>
+                      <TableHead className="text-white/80 text-center whitespace-nowrap">Videos</TableHead>
+                      <TableHead className="text-white/80 p-3 whitespace-nowrap">Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -308,12 +299,14 @@ const AdminDashboard = () => {
                               className="w-10 h-10 rounded-full object-cover border border-white/20"
                             />
                           </TableCell>
-                          <TableCell>{camper.full_name}</TableCell>
-                          <TableCell>{renderStatusIcon(camper.main_video_url)}</TableCell>
-                          <TableCell>{renderStatusIcon(camper.hasDreams)}</TableCell>
-                          <TableCell>{renderStatusIcon(camper.hasProjects)}</TableCell>
-                          <TableCell>{renderStatusIcon(camper.hasVideos)}</TableCell>
-                          <TableCell>
+                          <TableCell className="whitespace-nowrap max-w-[200px] truncate">
+                            {camper.full_name}
+                          </TableCell>
+                          <TableCell className="text-center">{renderStatusIcon(camper.main_video_url)}</TableCell>
+                          <TableCell className="text-center">{renderStatusIcon(camper.hasDreams)}</TableCell>
+                          <TableCell className="text-center">{renderStatusIcon(camper.hasProjects)}</TableCell>
+                          <TableCell className="text-center">{renderStatusIcon(camper.hasVideos)}</TableCell>
+                          <TableCell className="whitespace-nowrap">
                             <Badge variant={camper.isComplete ? "success" : "destructive"}>
                               {camper.isComplete ? "Completo" : "Pendiente"}
                             </Badge>
@@ -324,32 +317,38 @@ const AdminDashboard = () => {
                   </TableBody>
                 </Table>
               </div>
+
+              {/* Paginación */}
               {!loading && totalPages > 1 && (
-                <div className="mt-4 flex justify-center">
+                <div className="mt-6 flex justify-center">
                   <Pagination>
-                    <PaginationContent>
-                      <PaginationItem className="mx-1">
+                    <PaginationContent className="gap-2 flex-wrap">
+                      <PaginationItem>
                         <PaginationPrevious
                           onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                           disabled={currentPage === 1}
-                          className="transition-transform transform hover:scale-110"
+                          className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2"
                         />
                       </PaginationItem>
                       {[...Array(totalPages)].map((_, index) => (
-                        <PaginationItem key={index + 1} className="mx-1">
+                        <PaginationItem key={index + 1}>
                           <PaginationLink
                             onClick={() => setCurrentPage(index + 1)}
                             isActive={currentPage === index + 1}
+                            className={`rounded-medium px-3 py-2 text-sm font-medium transition-colors ${currentPage === index + 1
+                                ? 'bg-white text-blue'
+                                : 'text-white-700 hover:bg-white-200'
+                              }`}
                           >
                             {index + 1}
                           </PaginationLink>
                         </PaginationItem>
                       ))}
-                      <PaginationItem className="mx-1">
+                      <PaginationItem>
                         <PaginationNext
-                          onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                           disabled={currentPage === totalPages}
-                          className="transition-transform transform hover:scale-110"
+                          className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2"
                         />
                       </PaginationItem>
                     </PaginationContent>
@@ -359,9 +358,11 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </main>
+
       </div>
     </div>
   );
+
 };
 
 export default AdminDashboard;
