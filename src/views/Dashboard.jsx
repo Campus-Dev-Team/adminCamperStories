@@ -159,25 +159,41 @@ const AdminDashboard = () => {
   };
 
   const filteredCampers = useMemo(() => {
-    const filtered = data.campersPendientes.filter((camper) =>
+  let filtered = data.campersPendientes;
+
+  // Filtro por nombre
+  if (searchTerm) {
+    filtered = filtered.filter((camper) =>
       camper?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+  }
 
-    switch (activeFilter) {
-      case "pending":
-        return filtered.filter((camper) => !camper.isComplete);
-      case "complete":
-        return filtered.filter((camper) => camper.isComplete);
-      default:
-        return filtered;
-    }
-  }, [data.campersPendientes, searchTerm, activeFilter]);
+  // Filtro por estado
+  switch (activeFilter) {
+    case "pending":
+      filtered = filtered.filter((camper) => !camper.isComplete);
+      break;
+    case "complete":
+      filtered = filtered.filter((camper) => camper.isComplete);
+      break;
+    default:
+      break;
+  }
 
-  const totalPages = Math.ceil(filteredCampers.length / ITEMS_PER_PAGE);
-  const paginatedCampers = filteredCampers.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  return filtered;
+}, [data.campersPendientes, searchTerm, activeFilter]);
+
+// Reseteamos la página cuando cambia el filtro o la búsqueda
+useEffect(() => {
+  setCurrentPage(1);
+}, [searchTerm, activeFilter]);
+
+const totalPages = Math.ceil(filteredCampers.length / ITEMS_PER_PAGE);
+const paginatedCampers = filteredCampers.slice(
+  (currentPage - 1) * ITEMS_PER_PAGE,
+  currentPage * ITEMS_PER_PAGE
+);
+
 
   const renderStatusIcon = (status) => (
     <div className="flex justify-center items-center">
@@ -198,67 +214,57 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#1E1B4B] text-white font-sans relative overflow-hidden flex">
+    <div className="flex h-screen bg-[#1E1B4B] text-white font-sans relative">
       <ToastContainer theme="dark" />
       <Navbar />
-      <div className="flex-1 flex flex-col">
-        <header className="border-b border-white/10 bg-[#2E2B5B]/50 backdrop-blur-xl sticky top-0 z-10">
-          <div className="flex h-16 items-center justify-between px-6">
-            <div className="flex items-center gap-4">
-              <div className="relative">
+      <div className="flex-1 flex flex-col w-full">
+        <header className="border-b border-white/10 backdrop-blur-xl sticky top-0 z-10 bg-transparent">
+          <div className="flex flex-col md:flex-row h-auto md:h-16 items-start md:items-center justify-between px-4 py-3 md:px-6">
+            <div className="flex items-center w-full md:w-auto mb-3 md:mb-0">
+              {/* Barra de búsqueda */}
+              <div className="relative w-full md:w-72">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
                 <Input
                   type="text"
                   placeholder="Buscar camper..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/60"
+                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/60 w-full"
                 />
               </div>
-              <div className="flex gap-2">
-                <Badge
-                  variant={activeFilter === "all" ? "default" : "secondary"}
-                  className="cursor-pointer"
-                  onClick={() => setActiveFilter("all")}
-                >
-                  <Users className="h-4 w-4 mr-1" />
-                  Todos ({data.totalRegistrados})
-                </Badge>
-                <Badge
-                  variant={activeFilter === "pending" ? "default" : "secondary"}
-                  className="cursor-pointer"
-                  onClick={() => setActiveFilter("pending")}
-                >
-                  <UserX className="h-4 w-4 mr-1" />
-                  Pendientes ({data.registrosIncompletos})
-                </Badge>
-                <Badge
-                  variant={activeFilter === "complete" ? "default" : "secondary"}
-                  className="cursor-pointer"
-                  onClick={() => setActiveFilter("complete")}
-                >
-                  <Check className="h-4 w-4 mr-1" />
-                  Completados ({data.totalRegistrados - data.registrosIncompletos})
-                </Badge>
-              </div>
             </div>
-            <div className="flex items-center gap-4">
-              {isRegionalAdmin && data.campusName && (
-                <span className="text-sm text-white/80">
-                  Campus: <strong>{data.campusName}</strong>
-                </span>
-              )}
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm text-white transition-colors"
+            {/* Filtros con más espacio entre ellos */}
+            <div className="flex flex-wrap gap-2 md:gap-4 items-center w-full md:w-auto">
+              <Badge
+                variant={activeFilter === "all" ? "default" : "secondary"}
+                className="cursor-pointer"
+                onClick={() => setActiveFilter("all")}
               >
-                Cerrar sesión
-              </button>
+                <Users className="h-4 w-4 mr-1" />
+                Todos ({data.totalRegistrados})
+              </Badge>
+              <Badge
+                variant={activeFilter === "pending" ? "default" : "secondary"}
+                className="cursor-pointer"
+                onClick={() => setActiveFilter("pending")}
+              >
+                <UserX className="h-4 w-4 mr-1" />
+                Pendientes ({data.registrosIncompletos})
+              </Badge>
+              <Badge
+                variant={activeFilter === "complete" ? "default" : "secondary"}
+                className="cursor-pointer"
+                onClick={() => setActiveFilter("complete")}
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Completados ({data.totalRegistrados - data.registrosIncompletos})
+              </Badge>
             </div>
           </div>
         </header>
-        <main className="flex-1 p-6 overflow-auto">
-          <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg p-6">
+
+        <main className="flex-1 p-4 md:p-6 overflow-auto">
+          <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg p-4 md:p-6">
             <CardHeader>
               <CardTitle className="text-white">
                 {isRegionalAdmin
@@ -308,12 +314,12 @@ const AdminDashboard = () => {
                               className="w-10 h-10 rounded-full object-cover border border-white/20"
                             />
                           </TableCell>
-                          <TableCell>{camper.full_name}</TableCell>
+                          <TableCell className="whitespace-nowrap">{camper.full_name}</TableCell>
                           <TableCell>{renderStatusIcon(camper.main_video_url)}</TableCell>
                           <TableCell>{renderStatusIcon(camper.hasDreams)}</TableCell>
                           <TableCell>{renderStatusIcon(camper.hasProjects)}</TableCell>
                           <TableCell>{renderStatusIcon(camper.hasVideos)}</TableCell>
-                          <TableCell>
+                          <TableCell className="whitespace-nowrap">
                             <Badge variant={camper.isComplete ? "success" : "destructive"}>
                               {camper.isComplete ? "Completo" : "Pendiente"}
                             </Badge>
@@ -327,12 +333,12 @@ const AdminDashboard = () => {
               {!loading && totalPages > 1 && (
                 <div className="mt-6 flex justify-center">
                   <Pagination>
-                    <PaginationContent className="gap-2">
+                    <PaginationContent className="gap-2 flex-wrap">
                       <PaginationItem>
                         <PaginationPrevious
                           onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                           disabled={currentPage === 1}
-                          className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2 "
+                          className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2"
                         />
                       </PaginationItem>
                       {[...Array(totalPages)].map((_, index) => (
@@ -353,15 +359,13 @@ const AdminDashboard = () => {
                         <PaginationNext
                           onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                           disabled={currentPage === totalPages}
-                          className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2  "
+                          className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2"
                         />
                       </PaginationItem>
                     </PaginationContent>
                   </Pagination>
                 </div>
               )}
-
-
             </CardContent>
           </Card>
         </main>
