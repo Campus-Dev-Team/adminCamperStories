@@ -17,8 +17,8 @@ const Navbar = ({ handleButtonClick }) => {
 
     return (
         <>
-            
-            <nav className="hidden md:flex w-64 h-screen bg-[#1e1b4b] border-r border-white/10 flex-col pt-12 p-2 fixed left-0 top-0">
+            {/*  Barra lateral fija solo desde 1031px */}
+            <nav className="hidden [@media(min-width:1031px)]:flex w-64 h-screen bg-[#1e1b4b] border-r border-white/10 flex-col pt-12 p-2 fixed left-0 top-0">
                 <img src={campushm} alt="Campus" className="w-32 h-auto mx-auto -mb-2" />
                 <h2 className="text-xl font-bold mb-4 text-center pt-1 text-white">Admin Panel</h2>
                 <ul className="flex-1 flex flex-col justify-center items-center space-y-4">
@@ -29,21 +29,23 @@ const Navbar = ({ handleButtonClick }) => {
                 <button onClick={handleLogout} className="w-40 py-2 px-4 rounded bg-red-500 hover:bg-red-600 transition text-white mt-auto mb-4 mx-auto">Cerrar sesión</button>
             </nav>
 
-            <nav className="md:hidden w-full bg-[#1e1b4b] text-white p-4 fixed top-0 left-0 relative z-20">
-        
+            {/*  Hamburguesa desde 1030px hacia abajo */}
+            <nav className="[@media(min-width:1031px)]:hidden w-full bg-[#1e1b4b] text-white p-4 fixed top-0 left-0 relative z-20">
                 <div className="flex justify-between items-center">
-                    <img src={campushm} alt="Campus" className="w-20 h-auto" />
+                    <div className="flex flex-col items-center">
+                        <img src={campushm} alt="Campus" className="w-20 h-auto" />
+                        <h2 className="text-sm font-bold pt-1">Admin Panel</h2>
+                    </div>
                     <button
                         onClick={() => setIsOpen(!isOpen)}
                         className="text-white focus:outline-none"
                     >
-                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
                         </svg>
                     </button>
                 </div>
 
-                
                 {isOpen && (
                     <div className="absolute top-[64px] right-4 w-60 bg-[#1e1b4b] border border-white/10 rounded-lg shadow-xl p-4 z-50 animate-fade-in-down">
                         <h2 className="text-xl font-bold mb-4 text-center pt-1">Admin Panel</h2>
