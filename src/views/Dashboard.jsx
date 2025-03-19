@@ -227,15 +227,15 @@ const AdminDashboard = () => {
                 placeholder="Buscar camper..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/60 w-full"
+                className="pl-10  bg-white/5 border-white/10 text-white placeholder:text-white/60 w-full"
               />
             </div>
-            <div className="flex flex-wrap gap-2 md:gap-4 items-center">
+            <div className="flex flex-row gap-2 md:gap-2 items-center">
               {["all", "pending", "complete"].map((f) => (
                 <Badge
                   key={f}
                   variant={activeFilter === f ? "default" : "secondary"}
-                  className="cursor-pointer py-2 px-4 rounded hover:bg-white/10"
+                  className="cursor-pointer pl-0 py-2 px-4 rounded hover:bg-white/10"
                   onClick={() => setActiveFilter(f)}
                 >
                   {f === "all" && <><Users className="h-4 w-4 mr-1" /> Todos ({data.totalRegistrados})</>}
@@ -344,28 +344,40 @@ const AdminDashboard = () => {
                         <PaginationPrevious
                           onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                           disabled={currentPage === 1}
-                          className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2"
+                          className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2 text-[1px] "
                         />
                       </PaginationItem>
-                      {[...Array(totalPages)].map((_, index) => (
-                        <PaginationItem key={index + 1}>
-                          <PaginationLink
-                            onClick={() => setCurrentPage(index + 1)}
-                            isActive={currentPage === index + 1}
-                            className={`rounded-medium px-3 py-2 text-sm font-medium transition-colors ${currentPage === index + 1
-                              ? 'bg-white text-blue'
-                              : 'text-white-700 hover:bg-white-200'
-                              }`}
-                          >
-                            {index + 1}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ))}
+                      {(() => {
+                        // Determinar el rango de páginas a mostrar
+                        let startPage = Math.max(1, currentPage - 2);
+                        let endPage = Math.min(totalPages, startPage + 4);
+
+                        // Ajustar el rango si estamos cerca del final
+                        if (endPage - startPage < 4) {
+                          startPage = Math.max(1, endPage - 4);
+                        }
+
+                        // Crear el array de páginas a mostrar
+                        return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map((page) => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(page)}
+                              isActive={currentPage === page}
+                              className={`rounded-medium px-3 py-2 text-[12px] font-medium transition-colors ${currentPage === page
+                                  ? 'bg-transparent text-blue'
+                                  : 'text-white-700 hover:bg-white-200'
+                                }`}
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ));
+                      })()}
                       <PaginationItem>
                         <PaginationNext
                           onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                           disabled={currentPage === totalPages}
-                          className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2"
+                          className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2 text-[1px] "
                         />
                       </PaginationItem>
                     </PaginationContent>
