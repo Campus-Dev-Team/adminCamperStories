@@ -103,59 +103,25 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
 
-      // Obtener el usuario actual y su rol
       const storedUser = getCurrentUserFromStorage();
       const userRole = storedUser?.role_id;
 
-      // Determinar qué endpoint usar según el rol
-      let endpoint = endpoints.allCampersDetails; // Por defecto, todos los campers (admin)
-      let campusId = null;
-
-      if (userRole === 5) { // Si es regionalAdmin
-        endpoint = endpoints.myCampusCampers; // Usa el endpoint para obtener campers de su campus
-
-        // Obtener el ID del campus para el admin regional
-        const userQuery = 'SELECT city_id FROM USER WHERE id = ?';
-        const userResponse = await fetch(`/api/user/${storedUser.id}`, {
-          headers: getHeaders(),
-        });
-        const userData = await userResponse.json();
-        if (userData.data && userData.data.city_id) {
-          const campusResponse = await fetch(`/api/campus/by-city/${userData.data.city_id}`, {
-            headers: getHeaders(),
-          });
-          const campusData = await campusResponse.json();
-          if (campusData.data && campusData.data.id) {
-            campusId = campusData.data.id;
-          }
-        }
-      }
+      let endpoint = endpoints.allCampersDetails;
 
       // Obtener los usuarios no registrados
-      try {
-        // Si tenemos campusId para un admin regional, lo usamos
-        const notRegisteredEndpoint = campusId
-          ? `${endpoints.notRegistered}/${campusId}`
-          : endpoints.notRegistered;
+      const notRegistered2 = endpoints.notRegistered;
+      const response2 = await fetch(notRegistered2, {
+        headers: getHeaders(),
+      });
+      const responseData2 = await response2.json();
+      setNotRegisteredUsers(responseData2.data || []); // Guardamos los usuarios no registrados en el estado
 
-        const response2 = await fetch(notRegisteredEndpoint, {
-          headers: getHeaders(),
-        });
-
-        if (response2.ok) {
-          const responseData2 = await response2.json();
-          setNotRegisteredUsers(responseData2.data || []);
-        } else {
-          console.error("Error al obtener usuarios no registrados:", await response2.text());
-          setNotRegisteredUsers([]);
-        }
-      } catch (error) {
-        console.error("Error al obtener usuarios no registrados:", error);
-        setNotRegisteredUsers([]);
+      if (userRole === 5) {
+        endpoint = endpoints.myCampusCampers;
       }
 
       const response = await fetch(endpoint, {
-        headers: getHeaders()
+        headers: getHeaders(),
       });
 
       if (response.status === 401) {
@@ -166,22 +132,19 @@ const AdminDashboard = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al cargar los datos');
+        throw new Error(errorData.message || "Error al cargar los datos");
       }
 
       const responseData = await response.json();
 
-      // Procesar datos según el endpoint usado
       let allCampers = [];
       let campusName = null;
 
       if (userRole === 5) {
-        // Para regionalAdmin, los datos vienen de manera diferente
         const campusData = responseData.data || {};
         allCampers = campusData.campers || [];
         campusName = campusData.campusName;
       } else {
-        // Para admin, los datos vienen directamente
         allCampers = responseData.data || [];
       }
 
