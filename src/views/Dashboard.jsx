@@ -32,7 +32,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useAuth } from "../contexts/AuthContext";
-
+import style from "../styles/admin.module.css";
 const ITEMS_PER_PAGE = 9;
 
 const AdminDashboard = () => {
@@ -319,7 +319,7 @@ const AdminDashboard = () => {
             <div className="text-center py-8">No hay donaciones registradas.</div>
           ) : (
             paginatedDonaciones.map((donacion, index) => (
-              <Card key={index} className="bg-[#3B3768] border border-white/10 p-3 rounded-lg flex flex-col items-center text-center gap-2">
+              <Card key={index} className={`${style.tarjeta2} bg-[#3B3768] border border-white/10 p-3 rounded-lg flex flex-col items-center text-center gap-2`}>
                 <h3 className="truncate text-lg font-medium">{donacion.full_name}</h3>
                 <div className="grid grid-cols-1 gap-1 w-full">
                   <div className="flex justify-between"><span className="text-white/70">Donador:</span> <span>{donacion.NOMBRE_DONADOR}</span></div>
@@ -669,7 +669,7 @@ const AdminDashboard = () => {
                       <div className="text-center py-8">No se encontraron campers.</div>
                     ) : (
                       paginatedCampers.map((camper) => (
-                        <Card key={camper.camper_id} className="bg-[#3B3768] border border-white/10 p-2 rounded-lg flex flex-col items-center text-center gap-3">
+                        <Card key={camper.camper_id} className={`${style.tarjeta} bg-[#3B3768] border border-white/10 p-2 rounded-lg flex flex-col items-center text-center gap-3`}>
                           <img src={camper.profile_picture || "/api/placeholder/100/100"} alt={camper.full_name} className="w-20 h-20 rounded-full" />
                           <h3 className="truncate">{camper.full_name}</h3>
                           <div className="flex justify-center gap-2 flex-wrap">
