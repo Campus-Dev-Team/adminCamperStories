@@ -446,7 +446,7 @@ const AdminDashboard = () => {
             <div className="text-center py-8">No hay usuarios no registrados.</div>
           ) : (
             paginatedUsers.map((user, index) => (
-              <Card key={index} className="bg-[#3B3768] border border-white/10 p-3 rounded-lg flex flex-col items-center text-center gap-2">
+              <Card key={index} className={`${style.tarjeta2} bg-[#3B3768] border border-white/10 p-3 rounded-lg flex flex-col items-center text-center gap-2`}>
                 <div className="bg-white/10 w-8 h-8 rounded-full flex items-center justify-center text-sm">
                   {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
                 </div>
