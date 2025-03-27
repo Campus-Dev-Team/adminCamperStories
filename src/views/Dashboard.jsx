@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { toast, ToastContainer } from "react-toastify";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 import {
   Card,
   CardContent,
@@ -18,9 +19,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Users, UserX, Check, X, MapPin } from "lucide-react";
+import { Search, Users, UserX, Check, X, MapPin, Edit } from "lucide-react";
 import { endpoints } from "../services/apiConfig";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
 import Navbar from "../components/dashboard/Navbar";
 import {
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/pagination";
 import { useAuth } from "../contexts/AuthContext";
 import style from "../styles/admin.module.css";
+import { Button } from "@/components/ui/button";
 const ITEMS_PER_PAGE = 9;
 
 const AdminDashboard = () => {
@@ -359,8 +361,8 @@ const AdminDashboard = () => {
                         onClick={() => setCurrentPage(page)}
                         isActive={currentPage === page}
                         className={`rounded-medium px-3 py-2 text-[12px] font-medium transition-colors ${currentPage === page
-                            ? 'bg-transparent text-blue'
-                            : 'text-white-700 hover:bg-white-200'
+                          ? 'bg-transparent text-blue'
+                          : 'text-white-700 hover:bg-white-200'
                           }`}
                       >
                         {page}
@@ -485,8 +487,8 @@ const AdminDashboard = () => {
                         onClick={() => setCurrentPage(page)}
                         isActive={currentPage === page}
                         className={`rounded-medium px-3 py-2 text-[12px] font-medium transition-colors ${currentPage === page
-                            ? 'bg-transparent text-blue'
-                            : 'text-white-700 hover:bg-white-200'
+                          ? 'bg-transparent text-blue'
+                          : 'text-white-700 hover:bg-white-200'
                           }`}
                       >
                         {page}
@@ -543,7 +545,8 @@ const AdminDashboard = () => {
                 <Badge
                   key={f}
                   variant={activeFilter === f ? "default" : "secondary"}
-                  className="cursor-pointer py-2 px-4 rounded hover:bg-white/10"
+                  className={`cursor-pointer py-2 px-4 rounded 
+                    ${activeFilter === f ? "bg-white/10" : "hover:bg-white/10"}`}
                   onClick={() => setActiveFilter(f)}
                 >{f === "Donados" && (
                   <>
@@ -618,7 +621,8 @@ const AdminDashboard = () => {
                             <TableHead className="text-white/80 text-center whitespace-nowrap">Sueños</TableHead>
                             <TableHead className="text-white/80 text-center whitespace-nowrap">Proyectos</TableHead>
                             <TableHead className="text-white/80 text-center whitespace-nowrap">Videos</TableHead>
-                            <TableHead className="text-white/80 p-3 whitespace-nowrap">Estado</TableHead>
+                            <TableHead className="text-white/80 p-3 w-2 whitespace-nowrap">Estado</TableHead>
+                            <TableHead className="text-white/80 whitespace-nowrap flex items-center justify-center">Editar</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -656,6 +660,14 @@ const AdminDashboard = () => {
                                     {camper.isComplete ? "Completo" : "Pendiente"}
                                   </Badge>
                                 </TableCell>
+                                <TableCell className="flex items-end justify-center mt-2.5">
+                                  <Link to={`${API_BASE_URL}/campers/profile/${camper.camper_id}/edit`}>
+                                    <Button variant="ghostNoHover" size="icon">
+                                      <Edit className="h-5" />
+                                    </Button>
+                                  </Link>
+                                </TableCell>
+
                               </TableRow>
                             ))
                           )}
@@ -679,6 +691,15 @@ const AdminDashboard = () => {
                             <div className="flex items-center gap-1">{renderStatusIcon(camper.hasVideos)}<span className="text-xs">Videos</span></div>
                           </div>
                           <Badge variant={camper.isComplete ? "success" : "destructive"}>{camper.isComplete ? "Completo" : "Pendiente"}</Badge>
+                          <div className="flex items-center gap-1">Editar: 
+                            <span className="text-xs">
+                              <Link to={`${API_BASE_URL}/campers/profile/${camper.camper_id}/edit`}>
+                                <Button variant="ghostNoHover" size="icon">
+                                  <Edit className="h-4 flex items-center justify-center mt-1" />
+                                </Button>
+                              </Link>
+                            </span>
+                          </div>
                         </Card>
                       ))
                     )}
@@ -715,11 +736,10 @@ const AdminDashboard = () => {
                                     <PaginationLink
                                       onClick={() => setCurrentPage(page)}
                                       isActive={currentPage === page}
-                                      className={`rounded-medium px-3 py-2 text-[12px] font-medium transition-colors ${
-                                        currentPage === page
-                                          ? 'bg-[white] text-blue'
-                                          : 'text-white-700 hover:bg-white-200'
-                                      }`}
+                                      className={`rounded-medium px-3 py-2 text-[12px] font-medium transition-colors ${currentPage === page
+                                        ? 'bg-[white] text-blue'
+                                        : 'text-white-700 hover:bg-white-200'
+                                        }`}
                                     >
                                       {page}
                                     </PaginationLink>
