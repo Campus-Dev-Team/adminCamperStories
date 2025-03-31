@@ -16,7 +16,6 @@ export const AuthProvider = ({ children }) => {
         if (token && storedUser) {
           const userData = JSON.parse(storedUser);
           setCurrentUser(userData);
-          console.log('Usuario recuperado del localStorage:', userData);
         } else {
           console.log('No hay sesión guardada en localStorage');
         }
@@ -75,11 +74,7 @@ export const AuthProvider = ({ children }) => {
   // Agregar una propiedad para verificar si el usuario está autenticado
   const isAuthenticated = !!currentUser;
   
-  console.log('Estado de autenticación actualizado:', { 
-    isAuthenticated, 
-    currentUser: currentUser ? `Usuario ID: ${currentUser.id}, Rol: ${currentUser.role_id}` : 'Sin usuario'
-  });
-
+  
   return (
     <AuthContext.Provider value={{ 
       currentUser, 

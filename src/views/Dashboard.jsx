@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { toast, ToastContainer } from "react-toastify";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL2 = import.meta.env.VITE_API_BASE_URL2;
 import {
   Card,
   CardContent,
@@ -661,7 +662,7 @@ const AdminDashboard = () => {
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="flex items-end justify-center mt-2.5">
-                                  <Link to={`${API_BASE_URL}/campers/profile/${camper.camper_id}/edit`}>
+                                  <Link to={`${API_BASE_URL2}campers/profile/${camper.camper_id}/edit`}>
                                     <Button variant="ghostNoHover" size="icon">
                                       <Edit className="h-5" />
                                     </Button>
