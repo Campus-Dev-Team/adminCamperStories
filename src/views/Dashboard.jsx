@@ -62,6 +62,10 @@ const AdminDashboard = () => {
     "Content-Type": "application/json",
   });
 
+  const campusNames = {
+    1: "Bucaramanga",
+    2: "Bogotá"
+  };
   // Función para obtener el usuario actual desde localStorage
   const getCurrentUserFromStorage = () => {
     const userStr = localStorage.getItem("user");
@@ -139,7 +143,9 @@ const AdminDashboard = () => {
       }
 
       const responseData = await response.json();
-
+      console.log("**********************************************************")
+      console.log(responseData)
+      console.log("**********************************************************")
       let allCampers = [];
       let campusName = null;
 
@@ -232,6 +238,7 @@ const AdminDashboard = () => {
       switch (activeFilter) {
         case "pending":
           filtered = filtered.filter((camper) => !camper.isComplete);
+          
           break;
         case "complete":
           filtered = filtered.filter((camper) => camper.isComplete);
@@ -623,7 +630,9 @@ const AdminDashboard = () => {
                             <TableHead className="text-white/80 text-center whitespace-nowrap">Proyectos</TableHead>
                             <TableHead className="text-white/80 text-center whitespace-nowrap">Videos</TableHead>
                             <TableHead className="text-white/80 p-3 w-2 whitespace-nowrap">Estado</TableHead>
+                            <TableHead className="text-white/80 text-center whitespace-nowrap  w-14.5">Campus</TableHead>
                             <TableHead className="text-white/80 whitespace-nowrap flex items-center justify-center">Editar</TableHead>
+                            
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -641,6 +650,7 @@ const AdminDashboard = () => {
                             </TableRow>
                           ) : (
                             paginatedCampers.map((camper) => (
+                              
                               <TableRow key={camper.camper_id} className="border-white/10 hover:bg-white/5 transition">
                                 <TableCell>
                                   <img
@@ -661,6 +671,7 @@ const AdminDashboard = () => {
                                     {camper.isComplete ? "Completo" : "Pendiente"}
                                   </Badge>
                                 </TableCell>
+                                <TableCell className="text-center" >{campusNames[camper.campus_id] || "Otro"}</TableCell>
                                 <TableCell className="flex items-end justify-center mt-2.5">
                                   <Link to={`${API_BASE_URL2}campers/profile/${camper.camper_id}/edit`}>
                                     <Button variant="ghostNoHover" size="icon">
@@ -668,6 +679,7 @@ const AdminDashboard = () => {
                                     </Button>
                                   </Link>
                                 </TableCell>
+                                
 
                               </TableRow>
                             ))
@@ -682,6 +694,7 @@ const AdminDashboard = () => {
                       <div className="text-center py-8">No se encontraron campers.</div>
                     ) : (
                       paginatedCampers.map((camper) => (
+                        
                         <Card key={camper.camper_id} className={`${style.tarjeta} bg-[#3B3768] border border-white/10 p-2 rounded-lg flex flex-col items-center text-center gap-3`}>
                           <img src={camper.profile_picture || "/api/placeholder/100/100"} alt={camper.full_name} className="w-20 h-20 rounded-full" />
                           <h3 className="truncate">{camper.full_name}</h3>
