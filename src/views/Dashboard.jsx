@@ -143,9 +143,6 @@ const AdminDashboard = () => {
       }
 
       const responseData = await response.json();
-      console.log("**********************************************************")
-      console.log(responseData)
-      console.log("**********************************************************")
       let allCampers = [];
       let campusName = null;
 
