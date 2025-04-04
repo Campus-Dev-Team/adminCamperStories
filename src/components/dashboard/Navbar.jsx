@@ -33,8 +33,10 @@ const Navbar = ({ handleButtonClick }) => {
                 </button>
             </nav>*/}
 
+
+
             {/*  Hamburguesa desde 1030px hacia abajo [@media(min-width:1031px)]:hidden */}
-            <nav className=" w-full bg-[#07073b] text-white px-8 py-2 fixed top-0 left-0 relative z-20">
+            <nav className=" w-full bg-[#07073b] [@media(min-width:1031px)]:hidden text-white px-11 py-2 fixed top-0 left-0 relative z-20">
                 <div className="flex justify-between items-center">
                     <div className="flex flex-col items-center">
                         <img src={campushm} alt="Campus" className="w-20 h-auto" />
@@ -53,17 +55,46 @@ const Navbar = ({ handleButtonClick }) => {
                 {isOpen && (
                     <div className="fixed top-0 left-0 w-screen h-screen bg-[#1e1b4b] text-white flex flex-col items-center justify-center z-40 transition-opacity animate-fade-in">
                         <h2 className="text-2xl font-bold mb-6">Admin Panel</h2>
-                        <ul className="space-y-6 text-center">
+                        {/* <ul className="space-y-6 text-center">
                             <li><button onClick={handleButtonClick} className="text-lg py-3 px-6 rounded hover:bg-white/10 transition">Dashboard</button></li>
                             <li><button onClick={handleButtonClick} className="text-lg py-3 px-6 rounded hover:bg-white/10 transition">Users</button></li>
                             <li><button onClick={handleButtonClick} className="text-lg py-3 px-6 rounded hover:bg-white/10 transition">Settings</button></li>
-                        </ul>
+                </ul> */}
                         <button onClick={handleLogout} className="mt-8 px-6 py-3 rounded  hover:bg-red-600 transition text-white text-lg flex items-center gap-2">
                             <LogOut className="h-5 w-5" />
                             Salir
                         </button>
                     </div>
                 )}
+            </nav>
+
+            <nav className=" w-full bg-[#07073b] hidden [@media(min-width:1031px)]:flex text-white px-11 py-2 fixed top-0 left-0 relative z-20">
+
+                <div className="flex flex-row items-center w-full py-3">
+                    <div className="flex items-center mr-6">
+                        <img src={campushm} alt="Campus" className="w-20 h-auto" />
+                        <h2 className="text-sm font-bold ml-3">Admin Panel</h2>
+                    </div>
+
+                    {/* Espacio para los botones de navegación que están comentados 
+    <div className="flex-grow">
+        <ul className="flex space-x-4">
+            <li><button onClick={handleButtonClick} className="py-2 px-4 rounded hover:bg-white/10 transition">Dashboard</button></li>
+            <li><button onClick={handleButtonClick} className="py-2 px-4 rounded hover:bg-white/10 transition">Users</button></li>
+            <li><button onClick={handleButtonClick} className="py-2 px-4 rounded hover:bg-white/10 transition">Settings</button></li>
+        </ul>
+    </div>
+    */}
+
+                    <div className="ml-auto">
+                        <button onClick={handleLogout} className="px-4 py-2 rounded hover:bg-red-600 transition text-white flex items-center gap-2">
+                            <LogOut className="h-5 w-5" />
+                            Salir
+                        </button>
+                    </div>
+                </div>
+
+
             </nav>
         </>
     );
