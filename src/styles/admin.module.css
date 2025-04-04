@@ -1,0 +1,46 @@
+
+
+@media (max-width: 417px) {
+
+  .tarjeta2{
+    width: 95%;
+  }
+
+}
+
+@media (max-width: 380px) {
+
+  .tarjeta2{
+    width: 85%;
+  }
+
+}
+
+@media (max-width: 350px) {
+
+    .tarjeta{
+      width: 95%;
+    }
+    .tarjeta2{
+      width: 80%;
+    }
+  }
+
+  @media (max-width: 330px) {
+
+    .tarjeta{
+      width: 88%;
+    }
+
+    .tarjeta2{
+      width: 75%;
+    }
+  }
+
+  @media (max-width: 320px) {
+
+    .tarjeta{
+      width: 85%;
+    }
+
+  }
