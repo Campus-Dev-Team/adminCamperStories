@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify'; // Importa ToastContainer
+import 'react-toastify/dist/ReactToastify.css'; // Importa los estilos CSS
 import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Label } from "@/components/ui/label";
@@ -154,6 +155,20 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-[#1a1b2b] to-[#1e203a] flex flex-col items-center justify-center p-4 md:p-6 lg:p-8 relative overflow-hidden">
+      {/* Toast Container - Agregado aquí */}
+      <ToastContainer 
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      /> 
+
       {/* Stars Animation */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {stars.map((star) => (

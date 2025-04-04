@@ -1,9 +1,26 @@
+.descarga{
+  font-weight: 500;
+  font-size: 16px;
+}
 
+@media (max-width: 650px) {
 
-@media (max-width: 417px) {
+  .descarga{
+    display: none;
+  }
+  .icono{
+    margin-left: 2vh;
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 413px) {
 
   .tarjeta2{
     width: 95%;
+  }
+  .icono{
+    margin: 0;
   }
 
 }
@@ -13,6 +30,7 @@
   .tarjeta2{
     width: 85%;
   }
+
 
 }
 
