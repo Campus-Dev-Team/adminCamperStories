@@ -37,6 +37,10 @@ import { useAuth } from "../contexts/AuthContext";
 import style from "../styles/admin.module.css";
 import { Button } from "@/components/ui/button";
 const ITEMS_PER_PAGE = 9;
+import { FaFileDownload } from "react-icons/fa";
+// Importar la librería para exportar Excel
+import * as XLSX from 'xlsx';
+
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -258,6 +262,63 @@ const AdminDashboard = () => {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
+  // Función para descargar datos en Excel
+  const downloadExcel = () => {
+    let dataToExport = [];
+    let fileName = "datos_dashboard.xlsx";
+    
+    // Determinar qué datos exportar según el filtro activo
+    if (activeFilter === "Donados") {
+      // Exportar datos de donaciones
+      dataToExport = donaciones.map(item => ({
+        'Nombre del Camper': item.full_name,
+        'Donador': item.NOMBRE_DONADOR,
+        'Cantidad Donada': item.amount,
+        'Fecha': new Date(item.created_at).toLocaleDateString()
+      }));
+      fileName = "donaciones.xlsx";
+    } else if (activeFilter === "notRegistred") {
+      // Exportar datos de usuarios no registrados
+      dataToExport = notRegisteredUsers.map((user, index) => ({
+        '#': index + 1,
+        'Nombre Completo': user.full_name || user.nombre || "Sin nombre",
+        'Documento': user.documentoNumero || "Sin documento"
+      }));
+      fileName = "usuarios_no_registrados.xlsx";
+    } else {
+      // Exportar datos de campers (filtrados según activeFilter)
+      dataToExport = filteredCampers.map(camper => ({
+        'Nombre': camper.full_name,
+        'Video Principal': camper.main_video_url ? "Sí" : "No",
+        'Sueños': camper.hasDreams ? "Sí" : "No",
+        'Proyectos': camper.hasProjects ? "Sí" : "No",
+        'Videos': camper.hasVideos ? "Sí" : "No",
+        'Estado': camper.isComplete ? "Completo" : "Pendiente",
+        'Campus': campusNames[camper.campus_id] || "Otro"
+      }));
+      
+      // Ajustar nombre del archivo según el filtro
+      if (activeFilter === "pending") {
+        fileName = "campers_pendientes.xlsx";
+      } else if (activeFilter === "complete") {
+        fileName = "campers_completos.xlsx";
+      } else {
+        fileName = "todos_los_campers.xlsx";
+      }
+    }
+    
+    // Crear libro y hoja de trabajo
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Datos");
+    
+    // Generar y descargar el archivo Excel
+    XLSX.writeFile(workbook, fileName);
+    
+    // Mostrar mensaje de éxito
+    toast.success(`Archivo ${fileName} descargado correctamente`);
+  };
 
   const renderStatusIcon = (status) => (
     <div className="flex justify-center items-center">
@@ -590,7 +651,8 @@ const AdminDashboard = () => {
         <main className="h-dvh items-center md:p-2 pr-2 flex-1 overflow-auto">
           <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg m-2 mr-1 md:p-4">
             <CardHeader>
-              <CardTitle>
+              <CardTitle className="flex justify-between flex-wrap">
+                <div>
                 {activeFilter === "Donados"
                   ? "Registro de Donaciones"
                   : activeFilter === "notRegistred"
@@ -598,13 +660,24 @@ const AdminDashboard = () => {
                     : isRegionalAdmin
                       ? `Campers del Campus ${data.campusName}`
                       : "Estado de Registro de Campers"}
+                </div>
+                <div>
+                  <button 
+                    onClick={downloadExcel} 
+                    className="hover:scale-110 transition-transform flex  items-center gap-2" 
+                    title="Descargar Excel"
+                  >
+                    <p className={`${style.descarga}`}>Descargar</p>
+                    <FaFileDownload className={`${style.icono} h-5 w-5 mr-4`} />
+                  </button>
+                </div>
               </CardTitle>
               <CardDescription>
                 {activeFilter === "Donados"
                   ? "Listado de las donaciones realizadas a los campers"
                   : activeFilter === "notRegistred"
                     ? "Campers que aún no se han registrado en la plataforma"
-                    : "Seguimiento detallado del progreso de registro"}
+                    : "Seguimiento detallado del progreso de registro"}                 
               </CardDescription>
             </CardHeader>
             <CardContent>
