@@ -1,6 +1,5 @@
-import { useEffect, useState, useMemo, Suspense } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { FileDown } from "lucide-react"
-import Loader from '../components/common/Loader';
 import { toast, ToastContainer } from "react-toastify";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API_BASE_URL2 = import.meta.env.VITE_API_BASE_URL2;
