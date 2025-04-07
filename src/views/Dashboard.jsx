@@ -588,7 +588,6 @@ const AdminDashboard = () => {
         </header>
 
         <main className="h-dvh items-center md:p-2 pr-2 flex-1 overflow-auto">
-
           <Card className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg m-2 mr-1 md:p-4">
             <div className="flex flex-row-reverse">
               <button
@@ -672,7 +671,6 @@ const AdminDashboard = () => {
                 <>
                   {/* Versión desktop para la tabla principal de campers */}
                   <div className="hidden [@media(min-width:1031px)]:block">
-
                     <div className="overflow-x-auto bg-white/5 border border-white/10 rounded-lg pl-3">
                       <Table>
                         <TableHeader>
@@ -774,13 +772,15 @@ const AdminDashboard = () => {
                                   {campusNames[camper.campus_id] || "Otro"}
                                 </TableCell>
                                 <TableCell className="flex items-end justify-center mt-2.5">
-                                  <Link
-                                    to={`${API_BASE_URL2}campers/profile/${camper.camper_id}/edit`}
+                                  <a
+                                    href={`${API_BASE_URL2}/login?redirect=/campers/profile/${camper.camper_id}/edit`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                   >
                                     <Button variant="ghostNoHover" size="icon">
                                       <Edit className="h-5" />
                                     </Button>
-                                  </Link>
+                                  </a>
                                 </TableCell>
                               </TableRow>
                             ))
