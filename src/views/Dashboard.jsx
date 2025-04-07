@@ -106,15 +106,18 @@ const AdminDashboard = () => {
       const noRegisteredUsers = await api.get(
         `${mainEndpoints.admin}/${campusIdParam}/getAllUnlisted`
       );
-      setNotRegisteredUsers(noRegisteredUsers || []);
 
+      
+      // Corrección aquí - usa noRegisteredUsers en lugar de response
+      setNotRegisteredUsers(noRegisteredUsers.data.data || []);
+      
       setData((prevData) => ({
         ...prevData,
-        notRegistered: noRegisteredUsers.length || 0,
+        notRegistered: noRegisteredUsers.data.data?.length || 0,
       }));
     } catch (error) {
       console.error("Error al obtener usuarios no registrados:", error);
-      toast.error("Error al cargar usuarios no registrados");
+      toast.error("Upps.. no se encontraron usuarios no registrados");
     }
   };
 
@@ -200,12 +203,12 @@ const AdminDashboard = () => {
 
   const filteredCampers = useMemo(() => {
     let filtered = [];
-
+  
     if (activeFilter === "Donados") {
       return []; // Retornamos un array vacío porque mostraremos la tabla de donaciones
     } else if (activeFilter === "notRegistred") {
       // Filtramos los usuarios no registrados por nombre si hay búsqueda
-      filtered = notRegisteredUsers;
+      filtered = notRegisteredUsers || [];
       if (searchTerm) {
         filtered = filtered.filter((user) =>
           (user?.full_name || user?.nombre || "")
@@ -214,20 +217,19 @@ const AdminDashboard = () => {
         );
       }
     } else {
-      filtered = data.campersPendientes;
-
+      filtered = data.campersPendientes || []; // Add fallback to empty array
+  
       // Filtro por nombre
       if (searchTerm) {
         filtered = filtered.filter((camper) =>
           camper?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
         );
       }
-
+  
       // Filtro por estado
       switch (activeFilter) {
         case "pending":
           filtered = filtered.filter((camper) => !camper.isComplete);
-
           break;
         case "complete":
           filtered = filtered.filter((camper) => camper.isComplete);
@@ -236,12 +238,13 @@ const AdminDashboard = () => {
           break;
       }
     }
-
-    return filtered;
-
+  
+    return filtered || []; // Ensure return value is always an array
   }, [notRegisteredUsers, data.campersPendientes, searchTerm, activeFilter]);
-  const totalPages = Math.ceil(filteredCampers.length / ITEMS_PER_PAGE);
-  const paginatedCampers = filteredCampers.slice(
+  
+  // Modify these lines to add safety checks
+  const totalPages = Math.ceil((filteredCampers?.length || 0) / ITEMS_PER_PAGE);
+  const paginatedCampers = (filteredCampers || []).slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
@@ -444,14 +447,25 @@ const AdminDashboard = () => {
   };
 
   // Tabla de usuarios no registrados
-  const NoRegistradosTable = () => {
-    const paginatedUsers = notRegisteredUsers.data.slice(
+  const NoRegistradosTable = ({ 
+    notRegisteredUsers = [], 
+    loading = false, 
+    currentPage = 1, 
+    setCurrentPage, 
+    ITEMS_PER_PAGE = 10,
+    style 
+  }) => {
+    // Ahora notRegisteredUsers es directamente el array
+    const safeUsers = notRegisteredUsers || [];
+    
+    const paginatedUsers = safeUsers.slice(
       (currentPage - 1) * ITEMS_PER_PAGE,
       currentPage * ITEMS_PER_PAGE
     );
-
-    const totalNoRegistradosPages = Math.ceil(notRegisteredUsers.length / ITEMS_PER_PAGE);
-
+    
+    const totalNoRegistradosPages = Math.ceil(safeUsers.length / ITEMS_PER_PAGE);
+  
+  
     return (
       <>
         {/* Versión desktop */}
@@ -497,7 +511,7 @@ const AdminDashboard = () => {
             </Table>
           </div>
         </div>
-
+  
         {/* Versión mobile */}
         <div className="block [@media(min-width:1031px)]:hidden grid gap-4">
           {loading ? (
@@ -506,7 +520,7 @@ const AdminDashboard = () => {
             <div className="text-center py-8">No hay usuarios no registrados.</div>
           ) : (
             paginatedUsers.map((user, index) => (
-              <Card key={index} className={`${style.tarjeta2} bg-[#3B3768] border border-white/10 p-3 rounded-lg flex flex-col items-center text-center gap-2`}>
+              <Card key={index} className={`${style?.tarjeta2 || ''} bg-[#3B3768] border border-white/10 p-3 rounded-lg flex flex-col items-center text-center gap-2`}>
                 <div className="bg-white/10 w-8 h-8 rounded-full flex items-center justify-center text-sm">
                   {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
                 </div>
@@ -516,7 +530,7 @@ const AdminDashboard = () => {
             ))
           )}
         </div>
-
+  
         {!loading && totalNoRegistradosPages > 1 && (
           <div className="mt-6 flex justify-center">
             <Pagination>
@@ -532,22 +546,23 @@ const AdminDashboard = () => {
                   // Determinar el rango de páginas a mostrar
                   let startPage = Math.max(1, currentPage - 2);
                   let endPage = Math.min(totalNoRegistradosPages, startPage + 4);
-
+  
                   // Ajustar el rango si estamos cerca del final
                   if (endPage - startPage < 4) {
                     startPage = Math.max(1, endPage - 4);
                   }
-
+  
                   // Crear el array de páginas a mostrar
                   return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map((page) => (
                     <PaginationItem key={page}>
                       <PaginationLink
                         onClick={() => setCurrentPage(page)}
                         isActive={currentPage === page}
-                        className={`rounded-medium px-3 py-2 text-[12px] font-medium transition-colors ${currentPage === page
-                          ? 'bg-transparent text-blue'
-                          : 'text-white-700 hover:bg-white-200'
-                          }`}
+                        className={`rounded-medium px-3 py-2 text-[12px] font-medium transition-colors ${
+                          currentPage === page
+                            ? 'bg-transparent text-blue'
+                            : 'text-white-700 hover:bg-white-200'
+                        }`}
                       >
                         {page}
                       </PaginationLink>
@@ -605,7 +620,7 @@ const AdminDashboard = () => {
                 className="hover:scale-110 transition-transform flex  items-center gap-2"
                 title="Descargar Excel"
               >
-                <FileDown className={`${style.icono} h-5 w-5 mx-6`} />
+                <FileDown className={`${style.icono} h-5 w-5 mx-6 text-white`} />
               </button>
             </div>
             <CardHeader className="text-center">
@@ -620,7 +635,7 @@ const AdminDashboard = () => {
                     className="pl-10  bg-white/5 border-white/10 text-white placeholder:text-white/60 w-full"
                   />
                 </div>
-                <div className="flex flex-wrap gap-2 md:gap-4 items-center">
+                <div className="flex flex-wrap gap-2 md:gap-4 items-center  text-white">
                   {[
                     "Donados",
                     "notRegistred",
@@ -644,11 +659,11 @@ const AdminDashboard = () => {
                         </>
                       )}
                       {f === "notRegistred" && (
-                        <>
-                          <Users className="h-4 w-4 mr-1" /> No Registrados (
-                          {notRegisteredUsers.length})
-                        </>
-                      )}
+  <>
+    <Users className="h-4 w-4 mr-1" /> No Registrados (
+    {notRegisteredUsers.length})
+  </>
+)}
                       {f === "all" && (
                         <>
                           <Users className="h-4 w-4 mr-1" /> Todos (
@@ -676,7 +691,14 @@ const AdminDashboard = () => {
               {activeFilter === "Donados" ? (
                 <DonacionesTable />
               ) : activeFilter === "notRegistred" ? (
-                <NoRegistradosTable />
+                <NoRegistradosTable 
+  notRegisteredUsers={notRegisteredUsers}
+  loading={loadingInfo}
+  currentPage={currentPage}
+  setCurrentPage={setCurrentPage}
+  ITEMS_PER_PAGE={ITEMS_PER_PAGE}
+  style={style}
+/>
               ) : (
                 <>
                   {/* Versión desktop para la tabla principal de campers */}
