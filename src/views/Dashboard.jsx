@@ -72,6 +72,7 @@ const AdminDashboard = () => {
   const campusNames = {
     1: "Bucaramanga",
     2: "Bogotá",
+    3: "Tibú"
   };
 
   useEffect(() => {
@@ -560,7 +561,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#080840] text-white font-sans ">
+    <div className="min-h-screen bg-[#07073b] text-white font-sans ">
       <ToastContainer theme="dark" />
       <Navbar />
       <div className="flex-1 flex flex-col w-full px-5 overflow-hidden">
@@ -588,7 +589,8 @@ const AdminDashboard = () => {
         </header>
 
         <main className="h-dvh items-center md:p-2 pr-2 flex-1 overflow-auto">
-          <Card className="bg-[#07073b] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg m-2 mr-1 md:p-4">
+
+          <Card className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg m-2 mr-1 md:p-4">
             <div className="flex flex-row-reverse">
               <button
                 onClick={downloadExcel}
@@ -671,7 +673,8 @@ const AdminDashboard = () => {
                 <>
                   {/* Versión desktop para la tabla principal de campers */}
                   <div className="hidden [@media(min-width:1031px)]:block">
-                    <div className="overflow-x-auto bg-white/5 border border-[gray]/60 rounded-lg pl-3">
+
+                    <div className="overflow-x-auto bg-white/5 border border-white/10 rounded-lg pl-3">
                       <Table>
                         <TableHeader>
                           <TableRow className="border-white/10">
