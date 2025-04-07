@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, currentUser, loading } = useAuth();
+  const { currentUser, loading } = useAuth();
   
   // Muestra un indicador de carga mientras se verifica la autenticación
   if (loading) {
@@ -12,7 +12,7 @@ const ProtectedRoute = ({ children }) => {
 
   // IMPORTANTE: Usar isAuthenticated como booleano, NO como función
   // Cambio de isAuthenticated() a isAuthenticated
-  if (!isAuthenticated) {
+  if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
 

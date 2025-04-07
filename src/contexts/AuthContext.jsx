@@ -1,97 +1,118 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { api, mainEndpoints } from "@/services/axiosConfig";
+import AuthService from "../services/AuthService";
+import { toast } from "react-toastify";
 
 const AuthContext = createContext();
 
+export const useAuth = () => {
+  const context = React.useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth debe ser usado dentro de un AuthProvider");
+  }
+  return context;
+};
+
 export const AuthProvider = ({ children }) => {
+  const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  let [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Verificar si existe una sesión al iniciar
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-        
-        if (token && storedUser) {
-          const userData = JSON.parse(storedUser);
-          setCurrentUser(userData);
-          console.log('Usuario recuperado del localStorage:', userData);
-        } else {
-          console.log('No hay sesión guardada en localStorage');
+  const validateSession = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = await AuthService.getToken();
+
+      if (token) {
+        const role = token.user.role_id;
+
+        if (isNaN(role) || ![1, 5].includes(role)) {
+          throw new Error("Rol de usuario no válido");
         }
-      } catch (error) {
-        console.error("Error verificando autenticación:", error);
-        // Limpiar localStorage si hay un error al parsear
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      } finally {
-        setLoading(false);
+        setCurrentUser({
+          id: token.user.camper_id || token.user.sponsor_id || token.user.id,
+          role: role,
+          cityId: token.user.city_id
+        });
+      } else {
+        setCurrentUser(null);
       }
-    };
-
-    checkAuth();
+    } catch (error) {
+      console.error("Error validating session:", error);
+      toast.error(
+        error.response?.data?.message || "Error al validar la sesión."
+      );
+      setError(error);
+      setCurrentUser(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const login = async (token, userData) => {
+  const refreshAuthState = useCallback(async () => {
+    return validateSession();
+  }, [validateSession]);
+
+  useEffect(() => {
+    validateSession();
+  }, [validateSession]);
+
+  const logout = async () => {
     try {
-      console.log('Iniciando sesión con:', { token: token ? 'token-presente' : 'no-token', userData });
-      
-      // Guardar token y datos del usuario en localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
-      setCurrentUser(userData);
-      
-      console.log('Sesión iniciada correctamente:', userData);
-      return true;
+      await api.post(`${mainEndpoints.users}/logout`);
+      toast.success("¡Hasta pronto! Has cerrado sesión exitosamente.");
+      setCurrentUser(null);
+      setError(null);
+      setLoading(false);
+      navigate("/login");
     } catch (error) {
-      console.error("Error en login:", error);
-      return false;
+      toast.error("Error. Por favor, inténtalo de nuevo.");
+      setError(null);
+      console.error("Error durante el logout:", error);
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
-  const logout = () => {
-    console.log('Cerrando sesión');
-    // Eliminar token y datos de usuario
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setCurrentUser(null);
-    console.log('Sesión cerrada');
+  const hasPermission = (permission) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 1 || currentUser.role === 4) return true;
+    return currentUser.permissions?.includes(permission);
   };
 
-  const updateUserData = (newData) => {
-    try {
-      const updatedUser = { ...currentUser, ...newData };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      setCurrentUser(updatedUser);
-      console.log('Datos de usuario actualizados:', updatedUser);
-      return true;
-    } catch (error) {
-      console.error("Error actualizando datos de usuario:", error);
-      return false;
+  const isResourceOwner = (resourceId, resourceType) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 4) return true;
+
+    switch (resourceType) {
+      case "camper":
+        return currentUser.camper_id === resourceId.toString();
+      case "sponsor":
+        return currentUser.sponsor_id === resourceId.toString();
+      case "user":
+        return currentUser.id === parseInt(resourceId);
+      default:
+        return false;
     }
   };
-
-  // Agregar una propiedad para verificar si el usuario está autenticado
-  const isAuthenticated = !!currentUser;
-  
-  console.log('Estado de autenticación actualizado:', { 
-    isAuthenticated, 
-    currentUser: currentUser ? `Usuario ID: ${currentUser.id}, Rol: ${currentUser.role_id}` : 'Sin usuario'
-  });
 
   return (
-    <AuthContext.Provider value={{ 
-      currentUser, 
-      login, 
-      logout, 
-      loading,
-      updateUserData,
-      isAuthenticated // Exportar la propiedad isAuthenticated
-    }}>
+    <AuthContext.Provider
+      value={{
+        currentUser,
+        loading,
+        error,
+        logout,
+        hasPermission,
+        isResourceOwner,
+        refreshAuthState,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export { AuthContext };

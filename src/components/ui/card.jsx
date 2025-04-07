@@ -1,16 +1,79 @@
-export const Card = ({ className, ...props }) => (
-  <div className={`bg-[#2E2B5B]/50 backdrop-blur-xl border border-white/10 rounded-lg p-6 ${className}`} {...props} />
-)
+import * as React from "react";
+import { useNavigate } from "react-router-dom";
 
-export const CardHeader = ({ className, ...props }) => <div className={`mb-4 ${className}`} {...props} />
+import { cn } from "@/lib/utils";
 
-export const CardTitle = ({ className, ...props }) => (
-  <h3 className={`text-xl font-bold text-white mb-1 ${className}`} {...props} />
-)
+const Card = React.forwardRef(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-lg border border-gray-200 bg-white text-gray-950 shadow-sm dark:border-gray-800 dark:bg-gray-950 dark:text-gray-50",
+      className
+    )}
+    {...props}
+  />
+));
+Card.displayName = "Card";
 
-export const CardDescription = ({ className, ...props }) => (
-  <p className={`text-sm text-white/60 ${className}`} {...props} />
-)
+const CardHeader = React.forwardRef(
+  ({ className, navigateTo, ...props }, ref) => {
+    const navigate = useNavigate();
+    return (
+      <div
+        onClick={navigateTo ? () => navigate(navigateTo) : undefined} // Ejecuta navigate solo al hacer clic
+        ref={ref}
+        className={cn(
+          "flex flex-col space-y-1.5 p-6",
+          navigateTo ? "cursor-pointer" : "",
+          className
+        )}
+        {...props}
+      />
+    );
+  }
+);
+CardHeader.displayName = "CardHeader";
 
-export const CardContent = (props) => <div {...props} />
+const CardTitle = React.forwardRef(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "text-2xl font-semibold leading-none tracking-tight",
+      className
+    )}
+    {...props}
+  />
+));
+CardTitle.displayName = "CardTitle";
 
+const CardDescription = React.forwardRef(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("text-sm text-gray-500 dark:text-gray-400", className)}
+    {...props}
+  />
+));
+CardDescription.displayName = "CardDescription";
+
+const CardContent = React.forwardRef(({ className, ...props }, ref) => (
+  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+));
+CardContent.displayName = "CardContent";
+
+const CardFooter = React.forwardRef(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex items-center p-6 pt-0", className)}
+    {...props}
+  />
+));
+CardFooter.displayName = "CardFooter";
+
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+};

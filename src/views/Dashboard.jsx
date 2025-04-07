@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { toast, ToastContainer } from "react-toastify";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_FRONTEND_URL;
 import {
   Card,
   CardContent,
@@ -20,7 +20,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, Users, UserX, Check, X, MapPin, Edit } from "lucide-react";
-import { endpoints } from "../services/apiConfig";
 import { useNavigate, Link } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
 import Navbar from "../components/dashboard/Navbar";
@@ -32,14 +31,20 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { fetchDonaciones } from '../services/donationsService';
+import { getCampusIdByCityId } from '../services/campusService';
+import AuthService from "../services/AuthService";
 import { useAuth } from "../contexts/AuthContext";
 import style from "../styles/admin.module.css";
 import { Button } from "@/components/ui/button";
+import { api, mainEndpoints } from '../services/axiosConfig';
 const ITEMS_PER_PAGE = 9;
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { logout, currentUser } = useAuth();
+  const {refreshAuthState, currentUser, logout } = useAuth();
+  let { loading } = useAuth();
+  const [campusId, setCampusId] = useState("");
   const [data, setData] = useState({
     notRegistered: 0,
     totalRegistrados: 0,
@@ -48,158 +53,126 @@ const AdminDashboard = () => {
     campusName: null,
     Donaciones: 0,
   });
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [notRegisteredUsers, setNotRegisteredUsers] = useState([]);
   const [donaciones, setDonaciones] = useState([]);
   const [loadingDonaciones, setLoadingDonaciones] = useState(false);
+  let isRegionalAdmin;
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
-    "Content-Type": "application/json",
-  });
+  useEffect(() => {
+    const checkAuth = async () => {
+      const autoRedirect = await AuthService.checkAuth();
+      if (autoRedirect) navigate(autoRedirect);
+    };
 
-  // Función para obtener el usuario actual desde localStorage
-  const getCurrentUserFromStorage = () => {
-    const userStr = localStorage.getItem("user");
-    if (!userStr) return null;
-    try {
-      return JSON.parse(userStr);
-    } catch (error) {
-      console.error("Error parsing user data:", error);
-      return null;
+    checkAuth();
+  }, [navigate]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeFilter]);
+
+  useEffect(() => {
+    const essentialData = async (cityId) => {
+      const campusId = await getCampusIdByCityId(cityId);
+      setCampusId(campusId.id);
+      getCampersData(campusId.id);
     }
-  };
 
-  const fetchDonaciones = async () => {
-    try {
-      setLoadingDonaciones(true);
-      const response = await fetch(endpoints.donatedCampers, {
-        headers: getHeaders(),
-      });
-
-      if (!response.ok) {
-        throw new Error("Error al obtener las donaciones");
-      }
-
-      const responseData = await response.json();
-      setDonaciones(responseData.data || []);
-
-      // Actualizar el contador de donaciones en el objeto data
-      setData(prevData => ({
-        ...prevData,
-        Donaciones: responseData.data?.length || 0
-      }));
-
-    } catch (error) {
-      console.error("Error al obtener las donaciones:", error);
-      toast.error("Error al cargar las donaciones");
-    } finally {
-      setLoadingDonaciones(false);
+    if (currentUser) {
+      essentialData(currentUser.cityId);
+      isRegionalAdmin = currentUser.role === 5;
     }
-  };
+  }, [currentUser]);
 
-  const fetchCampersData = async () => {
+  const getCampersData = async (campusIdParam) => {
     try {
-      setLoading(true);
+      loading = true;
 
-      const storedUser = getCurrentUserFromStorage();
-      const userRole = storedUser?.role_id;
+      let endpoint = `${mainEndpoints.campers}/all/details`;
 
-      let endpoint = endpoints.allCampersDetails;
+      const noRegisteredUsers = await api.get(
+        `${mainEndpoints.admin}/${campusIdParam}/getAllUnlisted`
+      );
+      setNotRegisteredUsers(noRegisteredUsers || []); 
 
-      // Obtener los usuarios no registrados
-      const notRegistered2 = endpoints.notRegistered;
-      const response2 = await fetch(notRegistered2, {
-        headers: getHeaders(),
-      });
-      const responseData2 = await response2.json();
-      setNotRegisteredUsers(responseData2.data || []); // Guardamos los usuarios no registrados en el estado
-
-      if (userRole === 5) {
-        endpoint = endpoints.myCampusCampers;
+      if (currentUser.role === 5) {
+        // TODO: PENDIENTE PARA VOLVER DINAMICO EN EL BACKEND ENTREGANDOLE campusId
+        endpoint = `${mainEndpoints.admin}/campers/my-campus`;
       }
 
-      const response = await fetch(endpoint, {
-        headers: getHeaders(),
-      });
+      const regionCampers = (await api.get(endpoint)).data.data;
 
-      if (response.status === 401) {
-        toast.error("Sesión expirada o inválida");
-        logout();
-        return;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Error al cargar los datos");
-      }
-
-      const responseData = await response.json();
 
       let allCampers = [];
       let campusName = null;
 
-      if (userRole === 5) {
-        const campusData = responseData.data || {};
-        allCampers = campusData.campers || [];
-        campusName = campusData.campusName;
+      if (currentUser.role === 5) {
+        allCampers = regionCampers.campers || [];
+        campusName = regionCampers.campusName;
       } else {
-        allCampers = responseData.data || [];
+        allCampers = regionCampers || [];
       }
 
-      const incompleteCount = allCampers.filter(camper =>
-        !(camper.main_video_url &&
-          camper.dreams?.length > 0 &&
-          camper.projects?.length > 0 &&
-          camper.videos?.length > 0)
+      const incompleteCount = allCampers.filter(
+        (camper) =>
+          !(
+            camper.main_video_url &&
+            camper.dreams?.length > 0 &&
+            camper.projects?.length > 0 &&
+            camper.videos?.length > 0
+          )
       ).length;
 
       setData({
         notRegistered: notRegisteredUsers.length,
         totalRegistrados: allCampers.length,
         registrosIncompletos: incompleteCount,
-        campersPendientes: allCampers.map(camper => ({
+        campersPendientes: allCampers.map((camper) => ({
           ...camper,
-          isComplete: !!(camper.main_video_url &&
+          isComplete: !!(
+            camper.main_video_url &&
             camper.dreams?.length > 0 &&
             camper.projects?.length > 0 &&
-            camper.videos?.length > 0),
+            camper.videos?.length > 0
+          ),
           hasDreams: camper.dreams?.length > 0,
           hasProjects: camper.projects?.length > 0,
-          hasVideos: camper.videos?.length > 0
+          hasVideos: camper.videos?.length > 0,
         })),
         campusName: campusName,
-        Donaciones: 0 // Inicialmente establecemos en 0, se actualizará con fetchDonaciones
+        Donaciones: 0
       });
 
-      // También cargamos las donaciones al inicio
-      fetchDonaciones();
+      getDonations(campusIdParam);
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error al cargar los datos");
     } finally {
-      setLoading(false);
+      loading = false;
     }
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
+  const getDonations = async (campusIdParam) => {
+    try {
+      setLoadingDonaciones(true);
+      debugger
+      const regionDonations = await fetchDonaciones(campusIdParam);
+
+      setDonaciones(regionDonations || []);
+
+      setData((prevData) => ({
+        ...prevData,
+        Donaciones: regionDonations.data.length || 0,
+      }));
+    } catch (error) {
+      console.error("Error al obtener las donaciones:", error);
+      toast.error("Error al cargar las donaciones");
+    } finally {
+      setLoadingDonaciones(false);
     }
-
-    fetchCampersData();
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    toast.success("Sesión cerrada exitosamente");
-    navigate("/");
   };
 
   const filteredCampers = useMemo(() => {
@@ -241,18 +214,21 @@ const AdminDashboard = () => {
     }
 
     return filtered;
+
   }, [notRegisteredUsers, data.campersPendientes, searchTerm, activeFilter]);
-
-  // Reseteamos la página cuando cambia el filtro o la búsqueda
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, activeFilter]);
-
   const totalPages = Math.ceil(filteredCampers.length / ITEMS_PER_PAGE);
   const paginatedCampers = filteredCampers.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#1E1B4B] text-white font-sans relative overflow-hidden flex items-center justify-center">
+        <div className="text-xl">Cargando...</div>
+      </div>
+    );
+  }
 
   const renderStatusIcon = (status) => (
     <div className="flex justify-center items-center">
@@ -262,7 +238,8 @@ const AdminDashboard = () => {
 
   // Tabla de donaciones
   const DonacionesTable = () => {
-    const paginatedDonaciones = donaciones.slice(
+
+    const paginatedDonaciones = donaciones.data.slice(
       (currentPage - 1) * ITEMS_PER_PAGE,
       currentPage * ITEMS_PER_PAGE
     );
@@ -387,7 +364,7 @@ const AdminDashboard = () => {
 
   // Tabla de usuarios no registrados
   const NoRegistradosTable = () => {
-    const paginatedUsers = notRegisteredUsers.slice(
+    const paginatedUsers = notRegisteredUsers.data.slice(
       (currentPage - 1) * ITEMS_PER_PAGE,
       currentPage * ITEMS_PER_PAGE
     );
@@ -510,18 +487,6 @@ const AdminDashboard = () => {
       </>
     );
   };
-
-  // Obtener el usuario y rol para mostrar el título correcto
-  const storedUser = useMemo(() => getCurrentUserFromStorage(), []);
-  const isRegionalAdmin = storedUser?.role_id === 5;
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#1E1B4B] text-white font-sans relative overflow-hidden flex items-center justify-center">
-        <div className="text-xl">Cargando...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#07073b]  text-white font-sans [@media(min-width:1031px)]:ml-64">

@@ -6,7 +6,7 @@ import Dashboard from '../views/Dashboard';
 import { useAuth } from '../contexts/AuthContext';
 
 const AppRouter = () => {
-  const { isAuthenticated } = useAuth();
+  const { currentUser } = useAuth();
 
   return (
     <Routes>
@@ -14,7 +14,7 @@ const AppRouter = () => {
       <Route 
         path="/" 
         element={
-          isAuthenticated ? (
+          currentUser ? (
             <Navigate to="/dashboard" replace />
           ) : (
             <Navigate to="/login" replace />
@@ -26,7 +26,7 @@ const AppRouter = () => {
       <Route 
         path="/login" 
         element={
-          isAuthenticated ? (
+          currentUser ? (
             <Navigate to="/dashboard" replace />
           ) : (
             <LoginPage />
@@ -48,7 +48,7 @@ const AppRouter = () => {
       <Route 
         path="*" 
         element={
-          isAuthenticated ? (
+          currentUser ? (
             <Navigate to="/dashboard" replace />
           ) : (
             <Navigate to="/login" replace />
