@@ -95,7 +95,7 @@ const AdminDashboard = () => {
     }
 
     if (currentUser) {
-      debugger
+      
       essentialData(currentUser.cityId);
       isRegionalAdmin = currentUser.role === 5;
     }
