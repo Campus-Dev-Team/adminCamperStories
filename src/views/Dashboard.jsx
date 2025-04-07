@@ -101,24 +101,33 @@ const AdminDashboard = () => {
     }
   }, [currentUser]);
 
-  const getCampersData = async (campusIdParam) => {
+  const getNoRegisteredUsers = async (campusIdParam) => {
     try {
-      setLoadingInfo(true);
-
-      let endpoint = `${mainEndpoints.campers}/all/details`;
-
       const noRegisteredUsers = await api.get(
         `${mainEndpoints.admin}/${campusIdParam}/getAllUnlisted`
       );
-      setNotRegisteredUsers(noRegisteredUsers || []); 
+      setNotRegisteredUsers(noRegisteredUsers || []);
+
+      setData((prevData) => ({
+        ...prevData,
+        notRegistered: noRegisteredUsers.length || 0,
+      }));
+    } catch (error) {
+      console.error("Error al obtener usuarios no registrados:", error);
+      toast.error("Error al cargar usuarios no registrados");
+    }
+  };
+
+  const getCampersData = async (campusIdParam) => {
+    try {
+      setLoadingInfo(true);
+      let endpoint = `${mainEndpoints.campers}/all/details`;
 
       if (currentUser.role === 5) {
-        // TODO: PENDIENTE PARA VOLVER DINAMICO EN EL BACKEND ENTREGANDOLE campusId
         endpoint = `${mainEndpoints.admin}/campers/my-campus`;
       }
 
       const regionCampers = (await api.get(endpoint)).data.data;
-
 
       let allCampers = [];
       let campusName = null;
@@ -141,7 +150,7 @@ const AdminDashboard = () => {
       ).length;
 
       setData({
-        notRegistered: notRegisteredUsers.length,
+        notRegistered: 0, 
         totalRegistrados: allCampers.length,
         registrosIncompletos: incompleteCount,
         campersPendientes: allCampers.map((camper) => ({
@@ -157,10 +166,11 @@ const AdminDashboard = () => {
           hasVideos: camper.videos?.length > 0,
         })),
         campusName: campusName,
-        Donaciones: 0
+        Donaciones: 0,
       });
 
-      getDonations(campusIdParam);
+      await getNoRegisteredUsers(campusIdParam);
+      await getDonations(campusIdParam);
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error al cargar los datos");
