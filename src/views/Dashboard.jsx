@@ -1,5 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { FileDown } from "lucide-react"
+import Loader from '../components/common/Loader';
 import { toast, ToastContainer } from "react-toastify";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API_BASE_URL2 = import.meta.env.VITE_API_BASE_URL2;
@@ -50,6 +51,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const {refreshAuthState, currentUser, logout } = useAuth();
   let { loading } = useAuth();
+  const [ loadingInfo, setLoadingInfo] = useState(true);
   const [campusId, setCampusId] = useState("");
   const [data, setData] = useState({
     notRegistered: 0,
@@ -66,6 +68,11 @@ const AdminDashboard = () => {
   const [donaciones, setDonaciones] = useState([]);
   const [loadingDonaciones, setLoadingDonaciones] = useState(false);
   let isRegionalAdmin;
+
+  const campusNames = {
+    1: "Bucaramanga",
+    2: "Bogotá",
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -88,6 +95,7 @@ const AdminDashboard = () => {
     }
 
     if (currentUser) {
+      debugger
       essentialData(currentUser.cityId);
       isRegionalAdmin = currentUser.role === 5;
     }
@@ -95,7 +103,7 @@ const AdminDashboard = () => {
 
   const getCampersData = async (campusIdParam) => {
     try {
-      loading = true;
+      setLoadingInfo(true);
 
       let endpoint = `${mainEndpoints.campers}/all/details`;
 
@@ -157,14 +165,13 @@ const AdminDashboard = () => {
       console.error("Error:", error);
       toast.error("Error al cargar los datos");
     } finally {
-      loading = false;
+      setLoadingInfo(false);
     }
   };
 
   const getDonations = async (campusIdParam) => {
     try {
       setLoadingDonaciones(true);
-      debugger
       const regionDonations = await fetchDonaciones(campusIdParam);
 
       setDonaciones(regionDonations || []);
@@ -286,7 +293,7 @@ const AdminDashboard = () => {
     toast.success(`Archivo ${fileName} descargado correctamente`);
   };
 
-  if (loading) {
+  if (loadingInfo) {
     return (
       <div className="min-h-screen bg-[#1E1B4B] text-white font-sans relative overflow-hidden flex items-center justify-center">
         <div className="text-xl">Cargando...</div>
@@ -559,34 +566,28 @@ const AdminDashboard = () => {
       <div className="flex-1 flex flex-col w-full px-5 overflow-hidden">
         <header className="backdrop-blur-xl m-2 sticky pt-4 z-10 bg-transparent">
           <CardTitle className="flex justify-center flex-wrap">
-
             <div className="items-center">
-
               {activeFilter === "Donados"
                 ? "Registro de Donaciones"
                 : activeFilter === "notRegistred"
-                  ? "Usuarios No Registrados"
-                  : isRegionalAdmin
-                    ? `Campers del Campus ${data.campusName}`
-                    : "Estado de Registro de Campers"}
-
+                ? "Usuarios No Registrados"
+                : isRegionalAdmin
+                ? `Campers del Campus ${data.campusName}`
+                : "Estado de Registro de Campers"}
             </div>
-
-
           </CardTitle>
           <CardDescription>
-          <div className="text-center">
-            {activeFilter === "Donados"
-              ? "Listado de las donaciones realizadas a los campers"
-              : activeFilter === "notRegistred"
+            <div className="text-center">
+              {activeFilter === "Donados"
+                ? "Listado de las donaciones realizadas a los campers"
+                : activeFilter === "notRegistred"
                 ? "Campers que aún no se han registrado en la plataforma"
                 : "Seguimiento detallado del progreso de registro"}
-                </div>
+            </div>
           </CardDescription>
         </header>
 
         <main className="h-dvh items-center md:p-2 pr-2 flex-1 overflow-auto">
-
           <Card className="bg-[#07073b] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg m-2 mr-1 md:p-4">
             <div className="flex flex-row-reverse">
               <button
@@ -598,7 +599,6 @@ const AdminDashboard = () => {
               </button>
             </div>
             <CardHeader className="text-center">
-
               <div className="flex flex-col md:flex-row items-start justify-between  pl-2 py-5">
                 <div className="relative w-full md:w-72 mb-4 md:mb-0">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
@@ -611,20 +611,28 @@ const AdminDashboard = () => {
                   />
                 </div>
                 <div className="flex flex-wrap gap-2 md:gap-4 items-center">
-                  {["Donados", "notRegistred", "all", "pending", "complete"].map((f) => (
+                  {[
+                    "Donados",
+                    "notRegistred",
+                    "all",
+                    "pending",
+                    "complete",
+                  ].map((f) => (
                     <Badge
                       key={f}
                       variant={activeFilter === f ? "default" : "secondary"}
                       className={`cursor-pointer py-2 px-4 rounded 
-                    ${activeFilter === f ? "bg-white/10" : "hover:bg-white/10"}`}
+                    ${
+                      activeFilter === f ? "bg-white/10" : "hover:bg-white/10"
+                    }`}
                       onClick={() => setActiveFilter(f)}
-                    >{f === "Donados" && (
-                      <>
-                        <TbUserDollar className="h-4 w-4 mr-1" /> Donados (
-                        {data.Donaciones})
-
-                      </>
-                    )}
+                    >
+                      {f === "Donados" && (
+                        <>
+                          <TbUserDollar className="h-4 w-4 mr-1" /> Donados (
+                          {data.Donaciones})
+                        </>
+                      )}
                       {f === "notRegistred" && (
                         <>
                           <Users className="h-4 w-4 mr-1" /> No Registrados (
@@ -633,17 +641,20 @@ const AdminDashboard = () => {
                       )}
                       {f === "all" && (
                         <>
-                          <Users className="h-4 w-4 mr-1" /> Todos ({data.totalRegistrados})
+                          <Users className="h-4 w-4 mr-1" /> Todos (
+                          {data.totalRegistrados})
                         </>
                       )}
                       {f === "pending" && (
                         <>
-                          <UserX className="h-4 w-4 mr-1" /> Pendientes ({data.registrosIncompletos})
+                          <UserX className="h-4 w-4 mr-1" /> Pendientes (
+                          {data.registrosIncompletos})
                         </>
                       )}
                       {f === "complete" && (
                         <>
-                          <Check className="h-4 w-4 mr-1" /> Completados ({data.totalRegistrados - data.registrosIncompletos})
+                          <Check className="h-4 w-4 mr-1" /> Completados (
+                          {data.totalRegistrados - data.registrosIncompletos})
                         </>
                       )}
                     </Badge>
@@ -660,43 +671,71 @@ const AdminDashboard = () => {
                 <>
                   {/* Versión desktop para la tabla principal de campers */}
                   <div className="hidden [@media(min-width:1031px)]:block">
-
                     <div className="overflow-x-auto bg-white/5 border border-[gray]/60 rounded-lg pl-3">
                       <Table>
                         <TableHeader>
                           <TableRow className="border-white/10">
-                            <TableHead className="text-white/80 whitespace-nowrap">Foto</TableHead>
-                            <TableHead className="text-white/80 whitespace-nowrap">Nombre</TableHead>
-                            <TableHead className="text-white/80 text-center whitespace-nowrap">Video Principal</TableHead>
-                            <TableHead className="text-white/80 text-center whitespace-nowrap">Sueños</TableHead>
-                            <TableHead className="text-white/80 text-center whitespace-nowrap">Proyectos</TableHead>
-                            <TableHead className="text-white/80 text-center whitespace-nowrap">Videos</TableHead>
-                            <TableHead className="text-white/80 p-3 w-2 whitespace-nowrap">Estado</TableHead>
-                            <TableHead className="text-white/80 text-center whitespace-nowrap">Campus</TableHead>
-                            <TableHead className="text-white/80 whitespace-nowrap flex items-center justify-center">Editar</TableHead>
-
+                            <TableHead className="text-white/80 whitespace-nowrap">
+                              Foto
+                            </TableHead>
+                            <TableHead className="text-white/80 whitespace-nowrap">
+                              Nombre
+                            </TableHead>
+                            <TableHead className="text-white/80 text-center whitespace-nowrap">
+                              Video Principal
+                            </TableHead>
+                            <TableHead className="text-white/80 text-center whitespace-nowrap">
+                              Sueños
+                            </TableHead>
+                            <TableHead className="text-white/80 text-center whitespace-nowrap">
+                              Proyectos
+                            </TableHead>
+                            <TableHead className="text-white/80 text-center whitespace-nowrap">
+                              Videos
+                            </TableHead>
+                            <TableHead className="text-white/80 p-3 w-2 whitespace-nowrap">
+                              Estado
+                            </TableHead>
+                            <TableHead className="text-white/80 text-center whitespace-nowrap">
+                              Campus
+                            </TableHead>
+                            <TableHead className="text-white/80 whitespace-nowrap flex items-center justify-center">
+                              Editar
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {loading ? (
                             <TableRow>
-                              <TableCell colSpan={7} className="text-center py-8">
+                              <TableCell
+                                colSpan={7}
+                                className="text-center py-8"
+                              >
                                 Cargando información...
                               </TableCell>
                             </TableRow>
                           ) : paginatedCampers.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={7} className="text-center py-8">
-                                No se encontraron campers que coincidan con los criterios de búsqueda.
+                              <TableCell
+                                colSpan={7}
+                                className="text-center py-8"
+                              >
+                                No se encontraron campers que coincidan con los
+                                criterios de búsqueda.
                               </TableCell>
                             </TableRow>
                           ) : (
                             paginatedCampers.map((camper) => (
-
-                              <TableRow key={camper.camper_id} className="border-white/10 hover:bg-white/5 transition">
+                              <TableRow
+                                key={camper.camper_id}
+                                className="border-white/10 hover:bg-white/5 transition"
+                              >
                                 <TableCell>
                                   <img
-                                    src={camper.profile_picture || "/api/placeholder/40/40"}
+                                    src={
+                                      camper.profile_picture ||
+                                      "/api/placeholder/40/40"
+                                    }
                                     alt={camper.full_name}
                                     className="w-10 h-10 rounded-full object-cover border border-white/20"
                                   />
@@ -704,25 +743,43 @@ const AdminDashboard = () => {
                                 <TableCell className="whitespace-nowrap max-w-[200px] truncate">
                                   {camper.full_name}
                                 </TableCell>
-                                <TableCell className="text-center">{renderStatusIcon(camper.main_video_url)}</TableCell>
-                                <TableCell className="text-center">{renderStatusIcon(camper.hasDreams)}</TableCell>
-                                <TableCell className="text-center">{renderStatusIcon(camper.hasProjects)}</TableCell>
-                                <TableCell className="text-center">{renderStatusIcon(camper.hasVideos)}</TableCell>
+                                <TableCell className="text-center">
+                                  {renderStatusIcon(camper.main_video_url)}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  {renderStatusIcon(camper.hasDreams)}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  {renderStatusIcon(camper.hasProjects)}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  {renderStatusIcon(camper.hasVideos)}
+                                </TableCell>
                                 <TableCell className="whitespace-nowrap">
-                                  <Badge variant={camper.isComplete ? "success" : "destructive"}>
-                                    {camper.isComplete ? "Completo" : "Pendiente"}
+                                  <Badge
+                                    variant={
+                                      camper.isComplete
+                                        ? "success"
+                                        : "destructive"
+                                    }
+                                  >
+                                    {camper.isComplete
+                                      ? "Completo"
+                                      : "Pendiente"}
                                   </Badge>
                                 </TableCell>
-                                <TableCell className="text-center font-bold text-xs">{campusNames[camper.campus_id] || "Otro"}</TableCell>
+                                <TableCell className="text-center font-bold text-xs">
+                                  {campusNames[camper.campus_id] || "Otro"}
+                                </TableCell>
                                 <TableCell className="flex items-end justify-center mt-2.5">
-                                  <Link to={`${API_BASE_URL2}campers/profile/${camper.camper_id}/edit`}>
+                                  <Link
+                                    to={`${API_BASE_URL2}campers/profile/${camper.camper_id}/edit`}
+                                  >
                                     <Button variant="ghostNoHover" size="icon">
                                       <Edit className="h-5" />
                                     </Button>
                                   </Link>
                                 </TableCell>
-
-
                               </TableRow>
                             ))
                           )}
@@ -733,23 +790,55 @@ const AdminDashboard = () => {
 
                   <div className="block [@media(min-width:1031px)]:hidden grid gap-4">
                     {paginatedCampers.length === 0 ? (
-                      <div className="text-center py-8">No se encontraron campers.</div>
+                      <div className="text-center py-8">
+                        No se encontraron campers.
+                      </div>
                     ) : (
                       paginatedCampers.map((camper) => (
-
-                        <Card key={camper.camper_id} className={`${style.tarjeta} bg-[#07073b] border border-white/10 p-2 rounded-lg flex flex-col items-center text-center gap-3`}>
-                          <img src={camper.profile_picture || "/api/placeholder/100/100"} alt={camper.full_name} className="w-20 h-20 rounded-full" />
+                        <Card
+                          key={camper.camper_id}
+                          className={`${style.tarjeta} bg-[#07073b] border border-white/10 p-2 rounded-lg flex flex-col items-center text-center gap-3`}
+                        >
+                          <img
+                            src={
+                              camper.profile_picture ||
+                              "/api/placeholder/100/100"
+                            }
+                            alt={camper.full_name}
+                            className="w-20 h-20 rounded-full"
+                          />
                           <h3 className="truncate">{camper.full_name}</h3>
                           <div className="flex justify-center gap-2 flex-wrap">
-                            <div className="flex items-center gap-1">{renderStatusIcon(camper.main_video_url)}<span className="text-xs">Video Principal</span></div>
-                            <div className="flex items-center gap-1">{renderStatusIcon(camper.hasDreams)}<span className="text-xs">Sueños</span></div>
-                            <div className="flex items-center gap-1">{renderStatusIcon(camper.hasProjects)}<span className="text-xs">Proyectos</span></div>
-                            <div className="flex items-center gap-1">{renderStatusIcon(camper.hasVideos)}<span className="text-xs">Videos</span></div>
+                            <div className="flex items-center gap-1">
+                              {renderStatusIcon(camper.main_video_url)}
+                              <span className="text-xs">Video Principal</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {renderStatusIcon(camper.hasDreams)}
+                              <span className="text-xs">Sueños</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {renderStatusIcon(camper.hasProjects)}
+                              <span className="text-xs">Proyectos</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {renderStatusIcon(camper.hasVideos)}
+                              <span className="text-xs">Videos</span>
+                            </div>
                           </div>
-                          <Badge variant={camper.isComplete ? "success" : "destructive"}>{camper.isComplete ? "Completo" : "Pendiente"}</Badge>
-                          <div className="flex items-center gap-1">Editar:
+                          <Badge
+                            variant={
+                              camper.isComplete ? "success" : "destructive"
+                            }
+                          >
+                            {camper.isComplete ? "Completo" : "Pendiente"}
+                          </Badge>
+                          <div className="flex items-center gap-1">
+                            Editar:
                             <span className="text-xs">
-                              <Link to={`${API_BASE_URL}/campers/profile/${camper.camper_id}/edit`}>
+                              <Link
+                                to={`${API_BASE_URL}/campers/profile/${camper.camper_id}/edit`}
+                              >
                                 <Button variant="ghostNoHover" size="icon">
                                   <Edit className="h-4 flex items-center justify-center mt-1" />
                                 </Button>
@@ -765,54 +854,71 @@ const AdminDashboard = () => {
                   {!loading && (
                     <>
                       {/* Paginación condicional: solo se muestra para la tabla principal, no para Donados ni No Registrados */}
-                      {activeFilter !== "Donados" && activeFilter !== "notRegistred" && totalPages > 1 && (
-                        <div className="mt-6 flex justify-center">
-                          <Pagination>
-                            <PaginationContent className="gap-2 flex-wrap">
-                              <PaginationItem>
-                                <PaginationPrevious
-                                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                                  disabled={currentPage === 1}
-                                  className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2 text-[1px]"
-                                />
-                              </PaginationItem>
-                              {(() => {
-                                // Determinar el rango de páginas a mostrar
-                                let startPage = Math.max(1, currentPage - 2);
-                                let endPage = Math.min(totalPages, startPage + 4);
+                      {activeFilter !== "Donados" &&
+                        activeFilter !== "notRegistred" &&
+                        totalPages > 1 && (
+                          <div className="mt-6 flex justify-center">
+                            <Pagination>
+                              <PaginationContent className="gap-2 flex-wrap">
+                                <PaginationItem>
+                                  <PaginationPrevious
+                                    onClick={() =>
+                                      setCurrentPage((prev) =>
+                                        Math.max(1, prev - 1)
+                                      )
+                                    }
+                                    disabled={currentPage === 1}
+                                    className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2 text-[1px]"
+                                  />
+                                </PaginationItem>
+                                {(() => {
+                                  // Determinar el rango de páginas a mostrar
+                                  let startPage = Math.max(1, currentPage - 2);
+                                  let endPage = Math.min(
+                                    totalPages,
+                                    startPage + 4
+                                  );
 
-                                // Ajustar el rango si estamos cerca del final
-                                if (endPage - startPage < 4) {
-                                  startPage = Math.max(1, endPage - 4);
-                                }
+                                  // Ajustar el rango si estamos cerca del final
+                                  if (endPage - startPage < 4) {
+                                    startPage = Math.max(1, endPage - 4);
+                                  }
 
-                                // Crear el array de páginas a mostrar
-                                return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map((page) => (
-                                  <PaginationItem key={page}>
-                                    <PaginationLink
-                                      onClick={() => setCurrentPage(page)}
-                                      isActive={currentPage === page}
-                                      className={`rounded-medium px-3 py-2 text-[12px] font-medium transition-colors ${currentPage === page
-                                        ? 'bg-[transparent] text-blue'
-                                        : 'text-white-700 hover:bg-white-200'
+                                  // Crear el array de páginas a mostrar
+                                  return Array.from(
+                                    { length: endPage - startPage + 1 },
+                                    (_, i) => startPage + i
+                                  ).map((page) => (
+                                    <PaginationItem key={page}>
+                                      <PaginationLink
+                                        onClick={() => setCurrentPage(page)}
+                                        isActive={currentPage === page}
+                                        className={`rounded-medium px-3 py-2 text-[12px] font-medium transition-colors ${
+                                          currentPage === page
+                                            ? "bg-[transparent] text-blue"
+                                            : "text-white-700 hover:bg-white-200"
                                         }`}
-                                    >
-                                      {page}
-                                    </PaginationLink>
-                                  </PaginationItem>
-                                ));
-                              })()}
-                              <PaginationItem>
-                                <PaginationNext
-                                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                                  disabled={currentPage === totalPages}
-                                  className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2 text-[1px]"
-                                />
-                              </PaginationItem>
-                            </PaginationContent>
-                          </Pagination>
-                        </div>
-                      )}
+                                      >
+                                        {page}
+                                      </PaginationLink>
+                                    </PaginationItem>
+                                  ));
+                                })()}
+                                <PaginationItem>
+                                  <PaginationNext
+                                    onClick={() =>
+                                      setCurrentPage((prev) =>
+                                        Math.min(prev + 1, totalPages)
+                                      )
+                                    }
+                                    disabled={currentPage === totalPages}
+                                    className="transition-transform transform hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed rounded-full p-2 text-[1px]"
+                                  />
+                                </PaginationItem>
+                              </PaginationContent>
+                            </Pagination>
+                          </div>
+                        )}
                     </>
                   )}
                 </>

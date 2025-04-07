@@ -161,19 +161,6 @@ const LoginForm = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-[#1a1b2b] to-[#1e203a] flex flex-col items-center justify-center p-4 md:p-6 lg:p-8 relative overflow-hidden">
-      {/* Toast Container - Agregado aquí */}
-      <ToastContainer 
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-      /> 
 
       {/* Stars Animation */}
       <Dandruffer dandruffAmount={200} />
