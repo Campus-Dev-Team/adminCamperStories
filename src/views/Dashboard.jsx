@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
+import { FileDown } from "lucide-react"
 import { toast, ToastContainer } from "react-toastify";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL2 = import.meta.env.VITE_API_BASE_URL2;
 import {
   Card,
   CardContent,
@@ -36,6 +38,10 @@ import { useAuth } from "../contexts/AuthContext";
 import style from "../styles/admin.module.css";
 import { Button } from "@/components/ui/button";
 const ITEMS_PER_PAGE = 9;
+import { FaFileDownload } from "react-icons/fa";
+// Importar la librería para exportar Excel
+import * as XLSX from 'xlsx';
+
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -61,6 +67,10 @@ const AdminDashboard = () => {
     "Content-Type": "application/json",
   });
 
+  const campusNames = {
+    1: "Bucaramanga",
+    2: "Bogotá"
+  };
   // Función para obtener el usuario actual desde localStorage
   const getCurrentUserFromStorage = () => {
     const userStr = localStorage.getItem("user");
@@ -138,7 +148,6 @@ const AdminDashboard = () => {
       }
 
       const responseData = await response.json();
-
       let allCampers = [];
       let campusName = null;
 
@@ -231,6 +240,7 @@ const AdminDashboard = () => {
       switch (activeFilter) {
         case "pending":
           filtered = filtered.filter((camper) => !camper.isComplete);
+
           break;
         case "complete":
           filtered = filtered.filter((camper) => camper.isComplete);
@@ -253,6 +263,63 @@ const AdminDashboard = () => {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
+  // Función para descargar datos en Excel
+  const downloadExcel = () => {
+    let dataToExport = [];
+    let fileName = "datos_dashboard.xlsx";
+
+    // Determinar qué datos exportar según el filtro activo
+    if (activeFilter === "Donados") {
+      // Exportar datos de donaciones
+      dataToExport = donaciones.map(item => ({
+        'Nombre del Camper': item.full_name,
+        'Donador': item.NOMBRE_DONADOR,
+        'Cantidad Donada': item.amount,
+        'Fecha': new Date(item.created_at).toLocaleDateString()
+      }));
+      fileName = "donaciones.xlsx";
+    } else if (activeFilter === "notRegistred") {
+      // Exportar datos de usuarios no registrados
+      dataToExport = notRegisteredUsers.map((user, index) => ({
+        '#': index + 1,
+        'Nombre Completo': user.full_name || user.nombre || "Sin nombre",
+        'Documento': user.documentoNumero || "Sin documento"
+      }));
+      fileName = "usuarios_no_registrados.xlsx";
+    } else {
+      // Exportar datos de campers (filtrados según activeFilter)
+      dataToExport = filteredCampers.map(camper => ({
+        'Nombre': camper.full_name,
+        'Video Principal': camper.main_video_url ? "Sí" : "No",
+        'Sueños': camper.hasDreams ? "Sí" : "No",
+        'Proyectos': camper.hasProjects ? "Sí" : "No",
+        'Videos': camper.hasVideos ? "Sí" : "No",
+        'Estado': camper.isComplete ? "Completo" : "Pendiente",
+        'Campus': campusNames[camper.campus_id] || "Otro"
+      }));
+
+      // Ajustar nombre del archivo según el filtro
+      if (activeFilter === "pending") {
+        fileName = "campers_pendientes.xlsx";
+      } else if (activeFilter === "complete") {
+        fileName = "campers_completos.xlsx";
+      } else {
+        fileName = "todos_los_campers.xlsx";
+      }
+    }
+
+    // Crear libro y hoja de trabajo
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Datos");
+
+    // Generar y descargar el archivo Excel
+    XLSX.writeFile(workbook, fileName);
+
+    // Mostrar mensaje de éxito
+    toast.success(`Archivo ${fileName} descargado correctamente`);
+  };
 
   const renderStatusIcon = (status) => (
     <div className="flex justify-center items-center">
@@ -524,83 +591,103 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#07073b]  text-white font-sans [@media(min-width:1031px)]:ml-64">
+    <div className="min-h-screen bg-[#07073b] text-white font-sans ">
       <ToastContainer theme="dark" />
       <Navbar />
-      <div className="flex-1 flex flex-col w-full overflow-hidden">
-        <header className="backdrop-blur-xl m-2 sticky top-0 z-10 bg-transparent">
-          <div className="flex flex-col md:flex-row items-start justify-between px-4 py-3 md:px-6">
-            <div className="relative w-full md:w-72 mb-4 md:mb-0">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
-              <Input
-                type="text"
-                placeholder="Buscar camper..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10  bg-white/5 border-white/10 text-white placeholder:text-white/60 w-full"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2 md:gap-4 items-center">
-              {["Donados", "notRegistred", "all", "pending", "complete"].map((f) => (
-                <Badge
-                  key={f}
-                  variant={activeFilter === f ? "default" : "secondary"}
-                  className={`cursor-pointer py-2 px-4 rounded 
-                    ${activeFilter === f ? "bg-white/10" : "hover:bg-white/10"}`}
-                  onClick={() => setActiveFilter(f)}
-                >{f === "Donados" && (
-                  <>
-                    <TbUserDollar className="h-4 w-4 mr-1" /> Donados (
-                    {data.Donaciones})
+      <div className="flex-1 flex flex-col w-full px-5 overflow-hidden">
+        <header className="backdrop-blur-xl m-2 sticky pt-4 z-10 bg-transparent">
+          <CardTitle className="flex justify-center flex-wrap">
 
-                  </>
-                )}
-                  {f === "notRegistred" && (
-                    <>
-                      <Users className="h-4 w-4 mr-1" /> No Registrados (
-                      {notRegisteredUsers.length})
-                    </>
-                  )}
-                  {f === "all" && (
-                    <>
-                      <Users className="h-4 w-4 mr-1" /> Todos ({data.totalRegistrados})
-                    </>
-                  )}
-                  {f === "pending" && (
-                    <>
-                      <UserX className="h-4 w-4 mr-1" /> Pendientes ({data.registrosIncompletos})
-                    </>
-                  )}
-                  {f === "complete" && (
-                    <>
-                      <Check className="h-4 w-4 mr-1" /> Completados ({data.totalRegistrados - data.registrosIncompletos})
-                    </>
-                  )}
-                </Badge>
-              ))}
+            <div className="items-center">
+
+              {activeFilter === "Donados"
+                ? "Registro de Donaciones"
+                : activeFilter === "notRegistred"
+                  ? "Usuarios No Registrados"
+                  : isRegionalAdmin
+                    ? `Campers del Campus ${data.campusName}`
+                    : "Estado de Registro de Campers"}
+
             </div>
-          </div>
+
+
+          </CardTitle>
+          <CardDescription>
+          <div className="text-center">
+            {activeFilter === "Donados"
+              ? "Listado de las donaciones realizadas a los campers"
+              : activeFilter === "notRegistred"
+                ? "Campers que aún no se han registrado en la plataforma"
+                : "Seguimiento detallado del progreso de registro"}
+                </div>
+          </CardDescription>
         </header>
 
         <main className="h-dvh items-center md:p-2 pr-2 flex-1 overflow-auto">
-          <Card className="bg-[#2E2B5B] bg-opacity-50 backdrop-blur-xl border border-white/10 rounded-lg m-2 mr-1 md:p-4">
-            <CardHeader>
-              <CardTitle>
-                {activeFilter === "Donados"
-                  ? "Registro de Donaciones"
-                  : activeFilter === "notRegistred"
-                    ? "Usuarios No Registrados"
-                    : isRegionalAdmin
-                      ? `Campers del Campus ${data.campusName}`
-                      : "Estado de Registro de Campers"}
-              </CardTitle>
-              <CardDescription>
-                {activeFilter === "Donados"
-                  ? "Listado de las donaciones realizadas a los campers"
-                  : activeFilter === "notRegistred"
-                    ? "Campers que aún no se han registrado en la plataforma"
-                    : "Seguimiento detallado del progreso de registro"}
-              </CardDescription>
+
+          <Card className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg m-2 mr-1 md:p-4">
+            <div className="flex flex-row-reverse">
+              <button
+                onClick={downloadExcel}
+                className="hover:scale-110 transition-transform flex  items-center gap-2"
+                title="Descargar Excel"
+              >
+                <FileDown className={`${style.icono} h-5 w-5 mx-6`} />
+              </button>
+            </div>
+            <CardHeader className="text-center">
+
+              <div className="flex flex-col md:flex-row items-start justify-between  pl-2 py-5">
+                <div className="relative w-full md:w-72 mb-4 md:mb-0">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
+                  <Input
+                    type="text"
+                    placeholder="Buscar camper..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10  bg-white/5 border-white/10 text-white placeholder:text-white/60 w-full"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2 md:gap-4 items-center">
+                  {["Donados", "notRegistred", "all", "pending", "complete"].map((f) => (
+                    <Badge
+                      key={f}
+                      variant={activeFilter === f ? "default" : "secondary"}
+                      className={`cursor-pointer py-2 px-4 rounded 
+                    ${activeFilter === f ? "bg-white/10" : "hover:bg-white/10"}`}
+                      onClick={() => setActiveFilter(f)}
+                    >{f === "Donados" && (
+                      <>
+                        <TbUserDollar className="h-4 w-4 mr-1" /> Donados (
+                        {data.Donaciones})
+
+                      </>
+                    )}
+                      {f === "notRegistred" && (
+                        <>
+                          <Users className="h-4 w-4 mr-1" /> No Registrados (
+                          {notRegisteredUsers.length})
+                        </>
+                      )}
+                      {f === "all" && (
+                        <>
+                          <Users className="h-4 w-4 mr-1" /> Todos ({data.totalRegistrados})
+                        </>
+                      )}
+                      {f === "pending" && (
+                        <>
+                          <UserX className="h-4 w-4 mr-1" /> Pendientes ({data.registrosIncompletos})
+                        </>
+                      )}
+                      {f === "complete" && (
+                        <>
+                          <Check className="h-4 w-4 mr-1" /> Completados ({data.totalRegistrados - data.registrosIncompletos})
+                        </>
+                      )}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {activeFilter === "Donados" ? (
@@ -611,7 +698,8 @@ const AdminDashboard = () => {
                 <>
                   {/* Versión desktop para la tabla principal de campers */}
                   <div className="hidden [@media(min-width:1031px)]:block">
-                    <div className="overflow-x-auto">
+
+                    <div className="overflow-x-auto bg-white/5 border border-white/10 rounded-lg pl-3">
                       <Table>
                         <TableHeader>
                           <TableRow className="border-white/10">
@@ -622,7 +710,9 @@ const AdminDashboard = () => {
                             <TableHead className="text-white/80 text-center whitespace-nowrap">Proyectos</TableHead>
                             <TableHead className="text-white/80 text-center whitespace-nowrap">Videos</TableHead>
                             <TableHead className="text-white/80 p-3 w-2 whitespace-nowrap">Estado</TableHead>
+                            <TableHead className="text-white/80 text-center whitespace-nowrap">Campus</TableHead>
                             <TableHead className="text-white/80 whitespace-nowrap flex items-center justify-center">Editar</TableHead>
+
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -640,6 +730,7 @@ const AdminDashboard = () => {
                             </TableRow>
                           ) : (
                             paginatedCampers.map((camper) => (
+
                               <TableRow key={camper.camper_id} className="border-white/10 hover:bg-white/5 transition">
                                 <TableCell>
                                   <img
@@ -660,13 +751,15 @@ const AdminDashboard = () => {
                                     {camper.isComplete ? "Completo" : "Pendiente"}
                                   </Badge>
                                 </TableCell>
+                                <TableCell className="text-center font-bold text-xs">{campusNames[camper.campus_id] || "Otro"}</TableCell>
                                 <TableCell className="flex items-end justify-center mt-2.5">
-                                  <Link to={`${API_BASE_URL}/campers/profile/${camper.camper_id}/edit`}>
+                                  <Link to={`${API_BASE_URL2}campers/profile/${camper.camper_id}/edit`}>
                                     <Button variant="ghostNoHover" size="icon">
                                       <Edit className="h-5" />
                                     </Button>
                                   </Link>
                                 </TableCell>
+
 
                               </TableRow>
                             ))
@@ -681,7 +774,8 @@ const AdminDashboard = () => {
                       <div className="text-center py-8">No se encontraron campers.</div>
                     ) : (
                       paginatedCampers.map((camper) => (
-                        <Card key={camper.camper_id} className={`${style.tarjeta} bg-[#3B3768] border border-white/10 p-2 rounded-lg flex flex-col items-center text-center gap-3`}>
+
+                        <Card key={camper.camper_id} className={`${style.tarjeta} bg-[#07073b] border border-white/10 p-2 rounded-lg flex flex-col items-center text-center gap-3`}>
                           <img src={camper.profile_picture || "/api/placeholder/100/100"} alt={camper.full_name} className="w-20 h-20 rounded-full" />
                           <h3 className="truncate">{camper.full_name}</h3>
                           <div className="flex justify-center gap-2 flex-wrap">
@@ -691,7 +785,7 @@ const AdminDashboard = () => {
                             <div className="flex items-center gap-1">{renderStatusIcon(camper.hasVideos)}<span className="text-xs">Videos</span></div>
                           </div>
                           <Badge variant={camper.isComplete ? "success" : "destructive"}>{camper.isComplete ? "Completo" : "Pendiente"}</Badge>
-                          <div className="flex items-center gap-1">Editar: 
+                          <div className="flex items-center gap-1">Editar:
                             <span className="text-xs">
                               <Link to={`${API_BASE_URL}/campers/profile/${camper.camper_id}/edit`}>
                                 <Button variant="ghostNoHover" size="icon">
@@ -737,7 +831,7 @@ const AdminDashboard = () => {
                                       onClick={() => setCurrentPage(page)}
                                       isActive={currentPage === page}
                                       className={`rounded-medium px-3 py-2 text-[12px] font-medium transition-colors ${currentPage === page
-                                        ? 'bg-[white] text-blue'
+                                        ? 'bg-[transparent] text-blue'
                                         : 'text-white-700 hover:bg-white-200'
                                         }`}
                                     >

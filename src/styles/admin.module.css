@@ -1,35 +1,27 @@
-
-
-@media (max-width: 417px) {
-
-  .tarjeta2{
-    width: 95%;
-  }
-
+.descarga{
+  font-weight: 500;
+  font-size: 16px;
 }
 
-@media (max-width: 380px) {
+@media (max-width: 650px) {
 
-  .tarjeta2{
-    width: 85%;
+  .descarga{
+    display: none;
   }
-
+  .icono{
+    margin-left: 2vh;
+    margin-right: 0;
+  }
 }
 
-@media (max-width: 350px) {
 
-    .tarjeta{
-      width: 95%;
-    }
-    .tarjeta2{
-      width: 80%;
-    }
-  }
+
 
   @media (max-width: 330px) {
 
     .tarjeta{
-      width: 88%;
+      width: 75%;
+      
     }
 
     .tarjeta2{
@@ -37,10 +29,3 @@
     }
   }
 
-  @media (max-width: 320px) {
-
-    .tarjeta{
-      width: 85%;
-    }
-
-  }
