@@ -66,6 +66,7 @@ const AdminDashboard = () => {
   const [notRegisteredUsers, setNotRegisteredUsers] = useState([]);
   const [donaciones, setDonaciones] = useState([]);
   const [loadingDonaciones, setLoadingDonaciones] = useState(false);
+  const [loadingNotRegistered, setLoadingNotRegistered] = useState(false);
   let isRegionalAdmin;
 
   const campusNames = {
@@ -101,101 +102,122 @@ const AdminDashboard = () => {
     }
   }, [currentUser]);
 
+
   const getNoRegisteredUsers = async (campusIdParam) => {
     try {
-      const noRegisteredUsers = await api.get(
+      setLoadingNotRegistered(true);
+      console.log(`Fetching: ${mainEndpoints.admin}/${campusIdParam}/getAllUnlisted`);
+      
+      const response = await api.get(
         `${mainEndpoints.admin}/${campusIdParam}/getAllUnlisted`
       );
-
-      
-      // Corrección aquí - usa noRegisteredUsers en lugar de response
-      setNotRegisteredUsers(noRegisteredUsers.data.data || []);
+  
+      if (!response.data) {
+        throw new Error("La respuesta del servidor no contiene datos");
+      }
+  
+      // Verificamos varias posibles estructuras de respuesta
+      const users = Array.isArray(response.data) ? response.data :
+                   (Array.isArray(response.data.data) ? response.data.data : []);
+  
+      setNotRegisteredUsers(users);
       
       setData((prevData) => ({
         ...prevData,
-        notRegistered: noRegisteredUsers.data.data?.length || 0,
+        notRegistered: users.length,
       }));
     } catch (error) {
       console.error("Error al obtener usuarios no registrados:", error);
-      toast.error("Upps.. no se encontraron usuarios no registrados");
+      
+      // Mensaje de error más específico
+      let errorMessage = "Error al cargar usuarios no registrados";
+      if (error.response) {
+        if (error.response.status === 500) {
+          errorMessage = "Error interno del servidor al cargar usuarios no registrados";
+        } else if (error.response.status === 404) {
+          errorMessage = "Endpoint de usuarios no registrados no encontrado";
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
+      setNotRegisteredUsers([]);
+    } finally {
+      setLoadingNotRegistered(false);
     }
   };
+
+
 
   const getCampersData = async (campusIdParam) => {
     try {
       setLoadingInfo(true);
       let endpoint = `${mainEndpoints.campers}/all/details`;
-
+  
       if (currentUser.role === 5) {
         endpoint = `${mainEndpoints.admin}/campers/my-campus`;
       }
-
-      const regionCampers = (await api.get(endpoint)).data.data;
-
-      let allCampers = [];
-      let campusName = null;
-
-      if (currentUser.role === 5) {
-        allCampers = regionCampers.campers || [];
-        campusName = regionCampers.campusName;
-      } else {
-        allCampers = regionCampers || [];
-      }
-
-      const incompleteCount = allCampers.filter(
-        (camper) =>
-          !(
-            camper.main_video_url &&
-            camper.dreams?.length > 0 &&
-            camper.projects?.length > 0 &&
-            camper.videos?.length > 0
-          )
-      ).length;
-
-      setData({
-        notRegistered: 0, 
-        totalRegistrados: allCampers.length,
-        registrosIncompletos: incompleteCount,
-        campersPendientes: allCampers.map((camper) => ({
-          ...camper,
-          isComplete: !!(
-            camper.main_video_url &&
-            camper.dreams?.length > 0 &&
-            camper.projects?.length > 0 &&
-            camper.videos?.length > 0
-          ),
-          hasDreams: camper.dreams?.length > 0,
-          hasProjects: camper.projects?.length > 0,
-          hasVideos: camper.videos?.length > 0,
-        })),
-        campusName: campusName,
-        Donaciones: 0,
-      });
-
-      await getNoRegisteredUsers(campusIdParam);
-      await getDonations(campusIdParam);
+  
+      const response = await api.get(endpoint);
+      const regionCampers = response.data.data;
+  
+      // Resto del código...
+      
+      // Llamar a las funciones una sola vez
+      await Promise.allSettled([
+        getNoRegisteredUsers(campusIdParam),
+        getDonations(campusIdParam)
+      ]);
+      
     } catch (error) {
       console.error("Error:", error);
-      toast.error("Error al cargar los datos");
+      toast.error("Error al cargar los datos de campers");
     } finally {
       setLoadingInfo(false);
     }
   };
 
+
   const getDonations = async (campusIdParam) => {
     try {
       setLoadingDonaciones(true);
-      const regionDonations = await fetchDonaciones(campusIdParam);
-
-      setDonaciones(regionDonations || []);
-
+      const response = await fetchDonaciones(campusIdParam);
+      
+      if (!response) {
+        throw new Error("No se recibió respuesta del servidor");
+      }
+  
+      // Verificamos que la respuesta tenga la estructura esperada
+      const donationsData = Array.isArray(response) ? response : 
+                          (Array.isArray(response.data) ? response.data : []);
+  
+      setDonaciones({
+        data: donationsData,
+        length: donationsData.length
+      });
+  
       setData((prevData) => ({
         ...prevData,
-        Donaciones: regionDonations.data.length || 0,
+        Donaciones: donationsData.length,
       }));
     } catch (error) {
       console.error("Error al obtener las donaciones:", error);
-      toast.error("Error al cargar las donaciones");
+      
+      // Mensaje de error más específico
+      let errorMessage = "Error al cargar donaciones";
+      if (error.response) {
+        if (error.response.status === 500) {
+          errorMessage = "Error interno del servidor al cargar donaciones";
+        } else if (error.response.status === 404) {
+          errorMessage = "Endpoint de donaciones no encontrado";
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
+      setDonaciones({ data: [], length: 0 });
     } finally {
       setLoadingDonaciones(false);
     }
@@ -208,7 +230,7 @@ const AdminDashboard = () => {
       return []; // Retornamos un array vacío porque mostraremos la tabla de donaciones
     } else if (activeFilter === "notRegistred") {
       // Filtramos los usuarios no registrados por nombre si hay búsqueda
-      filtered = notRegisteredUsers || [];
+      filtered = Array.isArray(notRegisteredUsers) ? notRegisteredUsers : [];
       if (searchTerm) {
         filtered = filtered.filter((user) =>
           (user?.full_name || user?.nombre || "")
@@ -217,7 +239,7 @@ const AdminDashboard = () => {
         );
       }
     } else {
-      filtered = data.campersPendientes || []; // Add fallback to empty array
+      filtered = Array.isArray(data.campersPendientes) ? data.campersPendientes : [];
   
       // Filtro por nombre
       if (searchTerm) {
@@ -253,58 +275,72 @@ const AdminDashboard = () => {
   const downloadExcel = () => {
     let dataToExport = [];
     let fileName = "datos_dashboard.xlsx";
-
-    // Determinar qué datos exportar según el filtro activo
-    if (activeFilter === "Donados") {
-      // Exportar datos de donaciones
-      dataToExport = donaciones.map(item => ({
-        'Nombre del Camper': item.full_name,
-        'Donador': item.NOMBRE_DONADOR,
-        'Cantidad Donada': item.amount,
-        'Fecha': new Date(item.created_at).toLocaleDateString()
-      }));
-      fileName = "donaciones.xlsx";
-    } else if (activeFilter === "notRegistred") {
-      // Exportar datos de usuarios no registrados
-      dataToExport = notRegisteredUsers.map((user, index) => ({
-        '#': index + 1,
-        'Nombre Completo': user.full_name || user.nombre || "Sin nombre",
-        'Documento': user.documentoNumero || "Sin documento"
-      }));
-      fileName = "usuarios_no_registrados.xlsx";
-    } else {
-      // Exportar datos de campers (filtrados según activeFilter)
-      dataToExport = filteredCampers.map(camper => ({
-        'Nombre': camper.full_name,
-        'Video Principal': camper.main_video_url ? "Sí" : "No",
-        'Sueños': camper.hasDreams ? "Sí" : "No",
-        'Proyectos': camper.hasProjects ? "Sí" : "No",
-        'Videos': camper.hasVideos ? "Sí" : "No",
-        'Estado': camper.isComplete ? "Completo" : "Pendiente",
-        'Campus': campusNames[camper.campus_id] || "Otro"
-      }));
-
-      // Ajustar nombre del archivo según el filtro
-      if (activeFilter === "pending") {
-        fileName = "campers_pendientes.xlsx";
-      } else if (activeFilter === "complete") {
-        fileName = "campers_completos.xlsx";
+    try {
+      // Determinar qué datos exportar según el filtro activo
+      if (activeFilter === "Donados") {
+        // Exportar datos de donaciones
+        const donacionesArray = Array.isArray(donaciones?.data) ? donaciones.data : [];
+        dataToExport = donacionesArray.map(item => ({
+          'Nombre del Camper': item?.full_name || 'N/A',
+          'Donador': item?.NOMBRE_DONADOR || 'N/A',
+          'Cantidad Donada': item?.amount || 0,
+          'Fecha': item?.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'
+        }));
+        fileName = "donaciones.xlsx";
+      } else if (activeFilter === "notRegistred") {
+        // Exportar datos de usuarios no registrados
+        const usersArray = Array.isArray(notRegisteredUsers) ? notRegisteredUsers : [];
+        dataToExport = usersArray.map((user, index) => ({
+          '#': index + 1,
+          'Nombre Completo': user?.full_name || user?.nombre || "Sin nombre",
+          'Documento': user?.documentoNumero || "Sin documento"
+        }));
+        fileName = "usuarios_no_registrados.xlsx";
       } else {
-        fileName = "todos_los_campers.xlsx";
+        // Exportar datos de campers (filtrados según activeFilter)
+        const campersArray = Array.isArray(filteredCampers) ? filteredCampers : [];
+        dataToExport = campersArray.map(camper => ({
+          'Nombre': camper?.full_name || 'N/A',
+          'Video Principal': camper?.main_video_url ? "Sí" : "No",
+          'Sueños': camper?.hasDreams ? "Sí" : "No",
+          'Proyectos': camper?.hasProjects ? "Sí" : "No",
+          'Videos': camper?.hasVideos ? "Sí" : "No",
+          'Estado': camper?.isComplete ? "Completo" : "Pendiente",
+          'Campus': campusNames[camper?.campus_id] || "Otro"
+        }));
+
+        // Ajustar nombre del archivo según el filtro
+        if (activeFilter === "pending") {
+          fileName = "campers_pendientes.xlsx";
+        } else if (activeFilter === "complete") {
+          fileName = "campers_completos.xlsx";
+        } else {
+          fileName = "todos_los_campers.xlsx";
+        }
       }
+
+      // Solo exportar si hay datos
+      if (dataToExport.length === 0) {
+        toast.warning("No hay datos para exportar");
+        return;
+      }
+
+      // Crear libro y hoja de trabajo
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Datos");
+
+      // Generar y descargar el archivo Excel
+      XLSX.writeFile(workbook, fileName);
+
+      // Mostrar mensaje de éxito
+      toast.success(`Archivo ${fileName} descargado correctamente`);
+    } catch (error) {
+      console.error("Error al generar el archivo Excel:", error);
+      toast.error("Error al generar el archivo de descarga");
     }
-
-    // Crear libro y hoja de trabajo
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Datos");
-
-    // Generar y descargar el archivo Excel
-    XLSX.writeFile(workbook, fileName);
-
-    // Mostrar mensaje de éxito
-    toast.success(`Archivo ${fileName} descargado correctamente`);
   };
+
 
   if (loadingInfo) {
     return (
@@ -321,14 +357,17 @@ const AdminDashboard = () => {
   );
 
   // Tabla de donaciones
+  
   const DonacionesTable = () => {
-
-    const paginatedDonaciones = donaciones.data.slice(
+    const donacionesData = Array.isArray(donaciones?.data) ? donaciones.data : [];
+    const totalItems = donaciones?.length || 0;
+  
+    const paginatedDonaciones = donacionesData.slice(
       (currentPage - 1) * ITEMS_PER_PAGE,
       currentPage * ITEMS_PER_PAGE
     );
-
-    const totalDonacionesPages = Math.ceil(donaciones.length / ITEMS_PER_PAGE);
+  
+    const totalDonacionesPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
     return (
       <>
